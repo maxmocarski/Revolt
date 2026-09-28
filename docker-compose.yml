@@ -1,0 +1,11 @@
+services:
+  revolt:
+    build: .
+    ports:
+      - "8502:8501"
+    environment:
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - REVOLT_MODEL=gemma3:12b
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
