@@ -1,3 +1,5 @@
-streamlit
+fastapi
+uvicorn[standard]
+python-multipart
 ollama
 pillow
