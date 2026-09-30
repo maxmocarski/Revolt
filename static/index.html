@@ -1,1 +1,386 @@
-### New front end, HTML/JS file...
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ReVolt - E-Waste Scanner</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #fff;
+    }
+
+    #viewfinder {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+    }
+
+    #captureCanvas {
+      display: none;
+    }
+
+    /* Backdrop touch target to close sheet */
+    #backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      display: none;
+    }
+    #backdrop.active {
+      display: block;
+    }
+
+    .top-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 20px 16px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .status-pill {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #10B981;
+      border-radius: 50%;
+    }
+
+    .target-reticle {
+      position: absolute;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 240px;
+      height: 240px;
+      border: 2px dashed rgba(255, 255, 255, 0.4);
+      border-radius: 20px;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .shutter-container {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+    }
+    .shutter-btn {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      border: 4px solid #fff;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s ease;
+    }
+    .shutter-btn:active {
+      transform: scale(0.92);
+    }
+    .shutter-inner {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    /* Draggable Bottom Sheet */
+    .bottom-sheet {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 80vh;
+      background: rgba(20, 20, 24, 0.95);
+      backdrop-filter: blur(24px);
+      border-top-left-radius: 28px;
+      border-top-right-radius: 28px;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      z-index: 20;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      padding: 12px 20px 24px 20px;
+    }
+    .bottom-sheet.open {
+      transform: translateY(0%);
+    }
+
+    .sheet-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .drag-handle {
+      width: 40px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+      margin: 0 auto 12px auto;
+      cursor: pointer;
+    }
+    .sheet-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+    .close-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: #fff;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .badge-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .hazard-badge {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid #EF4444;
+      color: #FCA5A5;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+    }
+
+    .sheet-body {
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .section-box {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 14px;
+      border-radius: 14px;
+    }
+    .section-title {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #A1A1AA;
+      margin-bottom: 8px;
+    }
+
+    /* Action button inside sheet */
+    .rescan-btn {
+      width: 100%;
+      padding: 14px;
+      background: #2563EB;
+      color: white;
+      border: none;
+      border-radius: 14px;
+      font-weight: 600;
+      font-size: 1rem;
+      margin-top: 12px;
+      cursor: pointer;
+    }
+    .rescan-btn:active {
+      background: #1D4ED8;
+    }
+  </style>
+</head>
+<body>
+
+  <video id="viewfinder" autoplay playsinline muted></video>
+  <canvas id="captureCanvas"></canvas>
+  <div id="backdrop"></div>
+
+  <div class="target-reticle"></div>
+
+  <div class="top-header">
+    <div class="status-pill">
+      <span class="status-dot"></span> Gemma Local AI
+    </div>
+  </div>
+
+  <div class="shutter-container">
+    <button class="shutter-btn" id="scanBtn">
+      <div class="shutter-inner"></div>
+    </button>
+  </div>
+
+  <div class="bottom-sheet" id="sheet">
+    <div class="drag-handle" id="dragHandle"></div>
+    
+    <div class="sheet-header-bar">
+      <div class="sheet-title" id="itemTitle">Ready to Scan</div>
+      <button class="close-btn" id="closeBtn">✕</button>
+    </div>
+
+    <div class="badge-container" id="hazardsList"></div>
+
+    <div class="sheet-body">
+      <div class="section-box" id="specsBox" style="display:none;">
+        <div class="section-title">Specifications</div>
+        <div id="specsContent"></div>
+      </div>
+
+      <div class="section-box">
+        <div class="section-title">Disposal Guidelines</div>
+        <ul id="disposeList" style="padding-left: 18px;"></ul>
+      </div>
+
+      <div class="section-box" id="salvageBox" style="display:none;">
+        <div class="section-title">Salvageable Components</div>
+        <ul id="salvageList" style="padding-left: 18px;"></ul>
+      </div>
+
+      <button class="rescan-btn" id="scanAnotherBtn">Scan Another Item</button>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById('viewfinder');
+    const canvas = document.getElementById('captureCanvas');
+    const scanBtn = document.getElementById('scanBtn');
+    const sheet = document.getElementById('sheet');
+    const dragHandle = document.getElementById('dragHandle');
+    const closeBtn = document.getElementById('closeBtn');
+    const scanAnotherBtn = document.getElementById('scanAnotherBtn');
+    const backdrop = document.getElementById('backdrop');
+
+    async function initCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        });
+        video.srcObject = stream;
+      } catch (err) {
+        alert("Camera permission required: " + err.message);
+      }
+    }
+    initCamera();
+
+    function closeSheet() {
+      sheet.classList.remove('open');
+      backdrop.classList.remove('active');
+    }
+
+    function openSheet() {
+      sheet.classList.add('open');
+      backdrop.classList.add('active');
+    }
+
+    // Dismiss listeners
+    closeBtn.addEventListener('click', closeSheet);
+    scanAnotherBtn.addEventListener('click', closeSheet);
+    dragHandle.addEventListener('click', closeSheet);
+    backdrop.addEventListener('click', closeSheet);
+
+    // Capture & API Post
+    scanBtn.addEventListener('click', async () => {
+      document.getElementById('itemTitle').innerText = "Analyzing Component...";
+      openSheet();
+
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(async (blob) => {
+        const formData = new FormData();
+        formData.append('file', blob, 'capture.jpg');
+
+        try {
+          const response = await fetch('/api/scan', {
+            method: 'POST',
+            body: formData
+          });
+          const data = await response.json();
+          renderResults(data);
+        } catch (err) {
+          document.getElementById('itemTitle').innerText = "Error Scanning Item";
+          console.error(err);
+        }
+      }, 'image/jpeg', 0.85);
+    });
+
+    function renderResults(data) {
+      document.getElementById('itemTitle').innerText = data.item || "Unknown Item";
+
+      const hazardsContainer = document.getElementById('hazardsList');
+      hazardsContainer.innerHTML = '';
+      (data.hazards || []).forEach(hazard => {
+        const badge = document.createElement('div');
+        badge.className = 'hazard-badge';
+        badge.innerText = '⚠️ ' + hazard;
+        hazardsContainer.appendChild(badge);
+      });
+
+      const specsBox = document.getElementById('specsBox');
+      const specsContent = document.getElementById('specsContent');
+      if (data.specs && Object.keys(data.specs).length > 0) {
+        specsBox.style.display = 'block';
+        specsContent.innerHTML = Object.entries(data.specs)
+          .map(([k, v]) => `<div><strong>${k}:</strong> ${v}</div>`).join('');
+      } else {
+        specsBox.style.display = 'none';
+      }
+
+      const disposeList = document.getElementById('disposeList');
+      disposeList.innerHTML = (data.dispose || [])
+        .map(step => `<li>${step}</li>`).join('');
+
+      const salvageBox = document.getElementById('salvageBox');
+      const salvageList = document.getElementById('salvageList');
+      if (data.salvage && data.salvage.length > 0) {
+        salvageBox.style.display = 'block';
+        salvageList.innerHTML = data.salvage.map(item => `<li>${item}</li>`).join('');
+      } else {
+        salvageBox.style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>
