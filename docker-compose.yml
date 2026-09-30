@@ -1,1 +1,73 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: always
+    ports:
+      # 127.0.0.1 = only this server / Tailscale, not your whole Wi-Fi network
+      - "127.0.0.1:11434:11434"
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    volumes:
+      - /var/lib/ollama:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: always
+    ports:
+      - "3000:8080"
+    environment:
+      - ENABLE_METRICS=true
+      - ENABLE_PROMETHEUS_METRICS=true
+      - ENABLE_PROMETHEUS_ENDPOINT=true
+      - PROMETHEUS_METRICS=true
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - DDGS_BACKEND=html
+    volumes:
+      - open-webui:/app/backend/data
+    depends_on:
+      - ollama
+      - searxng
+
+  searxng:
+    image: docker.io/searxng/searxng:latest
+    container_name: searxng
+    restart: always
+    ports:
+      # 127.0.0.1 = only Open WebUI / this server needs this, not the whole network
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./searxng:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+      - SEARXNG_SECRET=
+
+  revolt:
+    build: ./revolt
+    container_name: revolt
+    restart: unless-stopped
+    ports:
+      # 127.0.0.1 = only this server (Tailscale serve reaches it); host 8502 -> container 8501
+      - "127.0.0.1:8502:8501"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - REVOLT_MODEL=gemma3:12b
+      - REVOLT_MODEL_2=qwen2.5vl:7b
+      - REVOLT_DB_PATH=/data/revolt.db
+    volumes:
+      # local folder on this AI server -- plenty of room, a scan history db stays tiny
+      - /srv/revolt-data:/data
+    depends_on:
+      - ollama
+
+volumes:
+  open-webui:
+    external: true
