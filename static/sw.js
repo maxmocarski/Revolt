@@ -1,4 +1,5 @@
-### creates a service worker cache ###
+//creates a service worker cache
+
 
 const CACHE_NAME = 'revolt-v1';
 const ASSETS = [
