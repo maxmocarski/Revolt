@@ -2,31 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#09090b">
+  <link rel="manifest" href="/static/manifest.json">
   <title>ReVolt - E-Waste Scanner</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
+      width: 100%; height: 100%; overflow: hidden;
       background-color: #09090b;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       color: #f4f4f5;
     }
 
-    .view {
-      display: none;
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 64px;
-      overflow-y: auto;
-      padding: 20px;
-    }
+    .view { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 64px; overflow-y: auto; padding: 20px; }
     .view.active { display: block; }
 
     #cameraView { padding: 0; overflow: hidden; }
@@ -34,181 +25,121 @@
     #captureCanvas, #thumbCanvas { display: none; }
 
     .top-header {
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      padding: 16px;
+      position: absolute; top: 0; left: 0; right: 0; padding: 16px;
       background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
-      z-index: 10;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      z-index: 10; display: flex; justify-content: space-between; align-items: center;
     }
     .status-pill {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: #a1a1aa;
+      background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15); padding: 6px 12px; border-radius: 20px;
+      font-size: 0.8rem; display: flex; align-items: center; gap: 8px; color: #a1a1aa;
     }
-    .status-dot {
-      width: 8px; height: 8px;
-      background: #10b981;
-      border-radius: 50%;
-    }
+    .status-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; }
 
-    .target-reticle {
-      position: absolute;
-      top: 42%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 240px; height: 240px;
-      border: 2px dashed rgba(255, 255, 255, 0.35);
-      border-radius: 20px;
-      pointer-events: none;
+    .icon-btn {
+      background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.2); color: #fff;
+      width: 40px; height: 40px; border-radius: 50%; display: flex;
+      align-items: center; justify-content: center; cursor: pointer;
     }
+    .icon-btn.active { background: #f59e0b; color: #000; border-color: #f59e0b; }
 
-    .shutter-container {
-      position: absolute;
-      bottom: 24px; left: 50%;
-      transform: translateX(-50%);
-      z-index: 10;
+    .shutter-row {
+      position: absolute; bottom: 24px; left: 0; right: 0;
+      display: flex; justify-content: center; align-items: center; gap: 20px; z-index: 10;
     }
     .shutter-btn {
-      width: 72px; height: 72px;
-      border-radius: 50%;
-      border: 4px solid #fff;
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(8px);
-      cursor: pointer;
+      width: 72px; height: 72px; border-radius: 50%;
+      border: 4px solid #fff; background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px); cursor: pointer;
       display: flex; align-items: center; justify-content: center;
     }
     .shutter-btn:active { transform: scale(0.92); }
     .shutter-inner { width: 54px; height: 54px; border-radius: 50%; background: #fff; }
 
+    .mode-toggle-btn {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff; font-size: 0.8rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      backdrop-filter: blur(8px);
+    }
+    .mode-toggle-btn.batch-active { background: #2563eb; border-color: #3b82f6; }
+
+    .batch-counter-pill {
+      display: none; position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
+      background: #2563eb; color: #fff; padding: 6px 14px; border-radius: 20px;
+      font-size: 0.8rem; font-weight: 600; z-index: 10; border: 1px solid rgba(255,255,255,0.3);
+    }
+
     .nav-bar {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 64px;
-      background: #121215;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      display: flex; justify-content: space-around; align-items: center;
-      z-index: 100;
+      position: fixed; bottom: 0; left: 0; right: 0; height: 64px;
+      background: #121215; border-top: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex; justify-content: space-around; align-items: center; z-index: 100;
     }
     .nav-item {
-      background: none; border: none;
-      color: #71717a; padding: 12px;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
+      background: none; border: none; color: #71717a; padding: 12px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
     }
     .nav-item.active { color: #2563eb; }
-    .nav-item svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .nav-item svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
     .view-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 16px; }
-    .card {
-      background: #18181b;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 14px;
-    }
+    .card { background: #18181b; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
     .card-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #a1a1aa; margin-bottom: 6px; }
     .card-value { font-size: 1.8rem; font-weight: 700; color: #f4f4f5; }
 
-    #backdrop {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.7);
-      z-index: 150;
-      display: none;
-    }
+    #backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 150; display: none; }
     #backdrop.active { display: block; }
 
     .bottom-sheet {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 85vh;
-      background: #141417;
-      border-top: 1px solid rgba(255, 255, 255, 0.15);
-      border-top-left-radius: 24px; border-top-right-radius: 24px;
-      z-index: 200;
-      transform: translateY(100%);
-      transition: transform 0.3s ease;
-      display: flex; flex-direction: column;
-      padding: 16px 20px 24px 20px;
+      position: fixed; bottom: 0; left: 0; right: 0; height: 85vh;
+      background: #141417; border-top: 1px solid rgba(255, 255, 255, 0.15);
+      border-top-left-radius: 24px; border-top-right-radius: 24px; z-index: 200;
+      transform: translateY(100%); transition: transform 0.3s ease;
+      display: flex; flex-direction: column; padding: 16px 20px 24px 20px;
     }
     .bottom-sheet.open { transform: translateY(0%); }
 
     .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .close-btn {
-      background: rgba(255, 255, 255, 0.1);
-      border: none; color: #fff;
-      width: 32px; height: 32px;
-      border-radius: 50%; cursor: pointer;
+    .close-btn { background: rgba(255, 255, 255, 0.1); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+    /* Photo Container & Hotspots Overlay */
+    .photo-preview-container {
+      position: relative; width: 100%; max-height: 240px; height: 240px;
+      border-radius: 14px; overflow: hidden; margin-bottom: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12); background: #000;
       display: flex; align-items: center; justify-content: center;
     }
+    .photo-preview-container img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
 
-    /* High-Definition Unstretched Photo Container */
-    .photo-preview-container {
-      width: 100%;
-      max-height: 240px;
-      height: 240px;
-      border-radius: 14px;
-      overflow: hidden;
-      margin-bottom: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .hazard-hotspot {
+      position: absolute; width: 28px; height: 28px; transform: translate(-50%, -50%);
+      border-radius: 50%; background: rgba(239, 68, 68, 0.4); border: 2px solid #ef4444;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.8); cursor: pointer;
+      animation: pulseHotspot 1.8s infinite; display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: bold; font-size: 12px; z-index: 5;
     }
-    .photo-preview-container img {
-      max-width: 100%;
-      max-height: 100%;
-      width: auto;
-      height: auto;
-      object-fit: contain;
-      image-rendering: -webkit-optimize-contrast;
+    @keyframes pulseHotspot {
+      0% { transform: translate(-50%, -50%) scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+      70% { transform: translate(-50%, -50%) scale(1.15); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+      100% { transform: translate(-50%, -50%) scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
     }
 
-    .badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 12px; border-radius: 10px;
-      font-size: 0.8rem; font-weight: 600;
-      margin-right: 8px; margin-bottom: 8px;
+    .guide-banner {
+      display: none; background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b;
+      color: #fcd34d; padding: 10px 14px; border-radius: 12px; font-size: 0.85rem; margin-bottom: 12px;
     }
+
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; margin-right: 8px; margin-bottom: 8px; }
     .badge-hazard { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5; }
     .badge-mercury { background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #fcd34d; }
 
-    .action-btn {
-      width: 100%; padding: 14px;
-      background: #2563eb; color: #fff;
-      border: none; border-radius: 12px;
-      font-weight: 600; font-size: 1rem;
-      cursor: pointer; margin-top: 12px;
-      transition: background 0.2s;
-    }
-    .action-btn:disabled {
-      background: #3f3f46;
-      cursor: not-allowed;
-    }
+    .action-btn { width: 100%; padding: 14px; background: #2563eb; color: #fff; border: none; border-radius: 12px; font-weight: 600; font-size: 1rem; cursor: pointer; margin-top: 10px; }
+    .salvage-item-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .save-part-btn { background: rgba(37, 99, 235, 0.2); border: 1px solid #2563eb; color: #60a5fa; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; cursor: pointer; }
 
-    .history-card {
-      background: #18181b;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 12px; border-radius: 12px;
-      margin-bottom: 10px;
-      display: flex; align-items: center; gap: 12px;
-      cursor: pointer;
-    }
-    .history-thumb {
-      width: 50px; height: 50px;
-      border-radius: 8px; object-fit: cover;
-      background: #27272a; flex-shrink: 0;
-    }
+    .inventory-card { background: #18181b; border: 1px solid rgba(255, 255, 255, 0.08); padding: 12px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
   </style>
 </head>
 <body>
@@ -220,140 +151,101 @@
     <video id="viewfinder" autoplay playsinline muted></video>
     <canvas id="captureCanvas"></canvas>
     <canvas id="thumbCanvas"></canvas>
-    <div class="target-reticle"></div>
 
     <div class="top-header">
-      <div class="status-pill">
-        <span class="status-dot"></span> Local AI Ready
-      </div>
+      <div class="status-pill"><span class="status-dot"></span> Local AI Ready</div>
+      <button class="icon-btn" id="torchBtn" style="display:none;" title="Toggle Flashlight">⚡</button>
     </div>
 
-    <div class="shutter-container">
-      <button class="shutter-btn" id="scanBtn">
-        <div class="shutter-inner"></div>
-      </button>
+    <div class="batch-counter-pill" id="batchPill">Batch Mode: 0 items</div>
+
+    <div class="shutter-row">
+      <button class="mode-toggle-btn" id="modeToggleBtn" title="Toggle Mode">1x</button>
+      <button class="shutter-btn" id="scanBtn"><div class="shutter-inner"></div></button>
+      <div style="width: 42px;"></div>
     </div>
   </div>
 
-  <!-- TAB 2: Statistics & Carbon Footprint -->
+  <!-- TAB 2: Stats -->
   <div class="view" id="statsView">
     <div class="view-title">Environmental Impact</div>
-
     <div class="card">
       <div class="card-label">Carbon Footprint Scanned</div>
       <div class="card-value" id="co2Offset">0.0 kg</div>
-      <div style="font-size: 0.8rem; color: #a1a1aa; margin-top: 4px;">Estimated CO2 associated with scanned electronics</div>
     </div>
-
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-      <div class="card">
-        <div class="card-label">Items Scanned</div>
-        <div class="card-value" id="totalScans">0</div>
-      </div>
-      <div class="card">
-        <div class="card-label">Mercury Risk</div>
-        <div class="card-value" id="mercuryCount">0</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-label">Scanned Categories</div>
-      <div id="categoryBreakdown" style="font-size: 0.9rem; color: #d4d4d8; margin-top: 8px;">
-        No items recorded yet.
-      </div>
+      <div class="card"><div class="card-label">Items Scanned</div><div class="card-value" id="totalScans">0</div></div>
+      <div class="card"><div class="card-label">Mercury Risk</div><div class="card-value" id="mercuryCount">0</div></div>
     </div>
   </div>
 
-  <!-- TAB 3: History -->
+  <!-- TAB 3: Salvage Parts Drawer -->
+  <div class="view" id="inventoryView">
+    <div class="view-title">Parts Drawer Inventory</div>
+    <div id="inventoryList"></div>
+  </div>
+
+  <!-- TAB 4: History -->
   <div class="view" id="historyView">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-      <div class="view-title" style="margin-bottom: 0;">Scan History</div>
+      <div class="view-title" style="margin-bottom:0;">Scan History</div>
       <button id="clearHistoryBtn" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer;">Clear</button>
     </div>
     <div id="historyList"></div>
   </div>
 
-  <!-- TAB 4: Stations & Settings -->
+  <!-- TAB 5: Stations -->
   <div class="view" id="settingsView">
     <div class="view-title">Recycling & Settings</div>
-
     <div class="card">
       <div class="card-label">E-Waste & Transfer Stations</div>
-      <p style="font-size: 0.85rem; color: #a1a1aa; margin-top: 6px; margin-bottom: 12px;">
-        Locate nearby transfer stations and certified e-waste drop-off facilities.
-      </p>
       <button class="action-btn" id="findStationsBtn">Find Nearest Stations</button>
-    </div>
-
-    <div class="card">
-      <div class="card-label">AI Verification Settings</div>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-        <span style="font-size: 0.9rem;">Double-Check Scans</span>
-        <input type="checkbox" id="doubleCheckToggle" style="width: 20px; height: 20px; accent-color: #2563eb;">
-      </div>
-      <div style="font-size: 0.75rem; color: #71717a; margin-top: 6px;">
-        Runs secondary local model pass to double-check hazard identification.
-      </div>
     </div>
   </div>
 
-  <!-- Bottom Sheet Overlay for Scan Results -->
+  <!-- Bottom Sheet Overlay -->
   <div class="bottom-sheet" id="sheet">
     <div class="sheet-header">
       <div id="itemTitle" style="font-size: 1.2rem; font-weight: 700;">Analyzing Component...</div>
       <button class="close-btn" id="closeSheetBtn">✕</button>
     </div>
 
-    <!-- Crisp High-Res Photo Display -->
-    <div class="photo-preview-container">
+    <div class="guide-banner" id="guideBanner"></div>
+
+    <div class="photo-preview-container" id="photoContainer">
       <img id="heldPhotoPreview" src="" alt="Captured E-Waste">
+      <div id="hotspotOverlay"></div>
     </div>
 
     <div id="hazardsList"></div>
 
-    <div style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 14px;">
-      <div class="card" id="specsBox" style="display:none; margin-bottom:0;">
-        <div class="card-label">Specifications</div>
-        <div id="specsContent" style="font-size: 0.85rem;"></div>
-      </div>
-
-      <div class="card" style="margin-bottom:0;">
-        <div class="card-label">Disposal Guidelines</div>
-        <ul id="disposeList" style="padding-left: 18px; font-size: 0.85rem; color: #d4d4d8;">
-          <li>Analyzing item structure and disposal rules...</li>
-        </ul>
-      </div>
-
-      <div class="card" id="salvageBox" style="display:none; margin-bottom:0;">
-        <div class="card-label">Salvageable Components</div>
-        <ul id="salvageList" style="padding-left: 18px; font-size: 0.85rem; color: #d4d4d8;"></ul>
-      </div>
-
+    <div style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;">
+      <div class="card" id="specsBox" style="display:none; margin-bottom:0;"><div class="card-label">Specifications</div><div id="specsContent"></div></div>
+      <div class="card" style="margin-bottom:0;"><div class="card-label">Disposal Guidelines</div><ul id="disposeList" style="padding-left:18px; font-size:0.85rem; color:#d4d4d8;"></ul></div>
+      <div class="card" id="salvageBox" style="display:none; margin-bottom:0;"><div class="card-label">Salvageable Components</div><div id="salvageList"></div></div>
+      <button class="action-btn" id="secondaryScanBtn" style="display:none; background:#f59e0b; color:#000;">Take Close-Up Photo</button>
       <button class="action-btn" id="scanAnotherBtn">Scan Another Item</button>
     </div>
   </div>
 
   <!-- Navigation Bar -->
   <nav class="nav-bar">
-    <button class="nav-item active" data-tab="cameraView">
-      <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-    </button>
-    <button class="nav-item" data-tab="statsView">
-      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-    </button>
-    <button class="nav-item" data-tab="historyView">
-      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-    </button>
-    <button class="nav-item" data-tab="settingsView">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-    </button>
+    <button class="nav-item active" data-tab="cameraView"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></button>
+    <button class="nav-item" data-tab="statsView"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></button>
+    <button class="nav-item" data-tab="inventoryView"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg></button>
+    <button class="nav-item" data-tab="historyView"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></button>
+    <button class="nav-item" data-tab="settingsView"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
   </nav>
 
   <script>
-    // Navigation Tabs
+    // Register PWA Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/static/sw.js').catch(err => console.log('SW reg error:', err));
+    }
+
+    // Tabs Navigation
     const navItems = document.querySelectorAll('.nav-item');
     const views = document.querySelectorAll('.view');
-
     navItems.forEach(item => {
       item.addEventListener('click', () => {
         const targetTab = item.getAttribute('data-tab');
@@ -361,16 +253,16 @@
         views.forEach(v => v.classList.remove('active'));
         item.classList.add('active');
         document.getElementById(targetTab).classList.add('active');
-
-        if (targetTab === 'statsView') renderStats();
+        if (targetTab === 'inventoryView') renderInventory();
         if (targetTab === 'historyView') renderHistory();
       });
     });
 
-    // Camera Feed
+    // Camera & Flashlight Track Setup
     const video = document.getElementById('viewfinder');
     const canvas = document.getElementById('captureCanvas');
-    const thumbCanvas = document.getElementById('thumbCanvas');
+    let videoTrack = null;
+    let torchOn = false;
 
     async function initCamera() {
       try {
@@ -379,25 +271,49 @@
           audio: false
         });
         video.srcObject = stream;
-      } catch (err) {
-        console.error("Camera access error:", err);
-      }
+        videoTrack = stream.getVideoTracks()[0];
+        const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+        if (capabilities.torch) {
+          document.getElementById('torchBtn').style.display = 'flex';
+        }
+      } catch (err) { console.error("Camera error:", err); }
     }
     initCamera();
 
-    // Sheet Controls
+    document.getElementById('torchBtn').addEventListener('click', async () => {
+      if (!videoTrack) return;
+      torchOn = !torchOn;
+      try {
+        await videoTrack.applyConstraints({ advanced: [{ torch: torchOn }] });
+        document.getElementById('torchBtn').classList.toggle('active', torchOn);
+      } catch (e) { console.error("Torch error:", e); }
+    });
+
+    // Batch Mode Toggle
+    let isBatchMode = false;
+    let batchQueue = [];
+    const modeToggleBtn = document.getElementById('modeToggleBtn');
+    const batchPill = document.getElementById('batchPill');
+
+    modeToggleBtn.addEventListener('click', () => {
+      isBatchMode = !isBatchMode;
+      if (isBatchMode) {
+        modeToggleBtn.innerText = "Batch";
+        modeToggleBtn.classList.add('batch-active');
+        batchPill.style.display = 'block';
+      } else {
+        modeToggleBtn.innerText = "1x";
+        modeToggleBtn.classList.remove('batch-active');
+        batchPill.style.display = 'none';
+        if (batchQueue.length > 0) processBatchSummary();
+      }
+    });
+
+    // Bottom Sheet Controls
     const sheet = document.getElementById('sheet');
     const backdrop = document.getElementById('backdrop');
-
-    function closeSheet() {
-      sheet.classList.remove('open');
-      backdrop.classList.remove('active');
-    }
-    function openSheet() {
-      sheet.classList.add('open');
-      backdrop.classList.add('active');
-    }
-
+    function closeSheet() { sheet.classList.remove('open'); backdrop.classList.remove('active'); }
+    function openSheet() { sheet.classList.add('open'); backdrop.classList.add('active'); }
     document.getElementById('closeSheetBtn').addEventListener('click', closeSheet);
     document.getElementById('scanAnotherBtn').addEventListener('click', closeSheet);
     backdrop.addEventListener('click', closeSheet);
@@ -405,167 +321,44 @@
     function resetSheetUI() {
       document.getElementById('itemTitle').innerText = "Analyzing Component...";
       document.getElementById('hazardsList').innerHTML = '';
+      document.getElementById('hotspotOverlay').innerHTML = '';
+      document.getElementById('guideBanner').style.display = 'none';
+      document.getElementById('secondaryScanBtn').style.display = 'none';
       document.getElementById('specsBox').style.display = 'none';
-      document.getElementById('specsContent').innerHTML = '';
-      document.getElementById('disposeList').innerHTML = '<li>Analyzing item structure and disposal rules...</li>';
+      document.getElementById('disposeList').innerHTML = '<li>Analyzing item structure...</li>';
       document.getElementById('salvageBox').style.display = 'none';
-      document.getElementById('salvageList').innerHTML = '';
     }
 
-    // History Storage
-    function getHistory() {
-      return JSON.parse(localStorage.getItem('revolt_history') || '[]');
-    }
-
-    function saveScan(data, photoUrl) {
-      const history = getHistory();
-      const entry = { id: Date.now(), timestamp: new Date().toISOString(), data, photo: photoUrl };
-      history.unshift(entry);
-      localStorage.setItem('revolt_history', JSON.stringify(history.slice(0, 50)));
-    }
-
-    function renderStats() {
-      const history = getHistory();
-      let totalCo2 = 0;
-      let mercuryItems = 0;
-      let categories = {};
-
-      history.forEach(item => {
-        const isPrinterOrLarge = (item.data.item || '').toLowerCase().includes('printer') || (item.data.item || '').toLowerCase().includes('monitor');
-        totalCo2 += isPrinterOrLarge ? 12.0 : 2.5;
-
-        if ((item.data.hazards || []).some(h => h.toLowerCase().includes('mercury'))) {
-          mercuryItems++;
-        }
-
-        const cat = item.data.category || 'General E-Waste';
-        categories[cat] = (categories[cat] || 0) + 1;
-      });
-
-      document.getElementById('totalScans').innerText = history.length;
-      document.getElementById('co2Offset').innerText = `${totalCo2.toFixed(1)} kg`;
-      document.getElementById('mercuryCount').innerText = mercuryItems;
-
-      const categoryContainer = document.getElementById('categoryBreakdown');
-      if (Object.keys(categories).length === 0) {
-        categoryContainer.innerText = "No items recorded yet.";
-      } else {
-        categoryContainer.innerHTML = Object.entries(categories)
-          .map(([k, v]) => `<div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>${k}</span><strong>${v}</strong></div>`)
-          .join('');
-      }
-    }
-
-    function renderHistory() {
-      const history = getHistory();
-      const container = document.getElementById('historyList');
-      container.innerHTML = '';
-
-      if (history.length === 0) {
-        container.innerHTML = `<div style="text-align:center; color:#71717a; padding:40px 0;">No saved scans.</div>`;
-        return;
-      }
-
-      history.forEach(entry => {
-        const div = document.createElement('div');
-        div.className = 'history-card';
-        div.innerHTML = `
-          <img class="history-thumb" src="${entry.photo || ''}" alt="thumb">
-          <div style="flex: 1;">
-            <div style="font-weight:600;">${entry.data.item || 'Unknown Component'}</div>
-            <div style="font-size:0.75rem; color:#71717a;">${new Date(entry.timestamp).toLocaleDateString()}</div>
-          </div>
-          <div style="color:#71717a;">›</div>
-        `;
-        div.addEventListener('click', () => {
-          document.getElementById('heldPhotoPreview').src = entry.photo || '';
-          renderResults(entry.data);
-          openSheet();
-        });
-        container.appendChild(div);
-      });
-    }
-
-    document.getElementById('clearHistoryBtn').addEventListener('click', () => {
-      if (confirm("Clear all scan history?")) {
-        localStorage.removeItem('revolt_history');
-        renderHistory();
-      }
-    });
-
-    // Station Finder
-    const findStationsBtn = document.getElementById('findStationsBtn');
-    findStationsBtn.addEventListener('click', () => {
-      const originalText = findStationsBtn.innerText;
-      findStationsBtn.innerText = "Locating nearby stations...";
-      findStationsBtn.disabled = true;
-
-      const searchQuery = "e-waste recycling transfer station";
-
-      if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            findStationsBtn.innerText = originalText;
-            findStationsBtn.disabled = false;
-            window.open(`https://www.google.com/maps/search/${encodeURIComponent(searchQuery)}/@${pos.coords.latitude},${pos.coords.longitude},12z`, '_blank');
-          },
-          (err) => {
-            console.warn("Geolocation fallback triggered:", err);
-            findStationsBtn.innerText = originalText;
-            findStationsBtn.disabled = false;
-            window.open(`https://www.google.com/maps/search/${encodeURIComponent(searchQuery)}+near+me`, '_blank');
-          },
-          { timeout: 6000, enableHighAccuracy: true }
-        );
-      } else {
-        findStationsBtn.innerText = originalText;
-        findStationsBtn.disabled = false;
-        window.open(`https://www.google.com/maps/search/${encodeURIComponent(searchQuery)}+near+me`, '_blank');
-      }
-    });
-
-    // High-Resolution Crisp Capture Execution
+    // Shutter Trigger Execution
     document.getElementById('scanBtn').addEventListener('click', async () => {
-      resetSheetUI();
-
-      // Capture frame at full native sensor resolution
       canvas.width = video.videoWidth || 1280;
       canvas.height = video.videoHeight || 720;
       const ctx = canvas.getContext('2d');
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Render crisp, high-definition data URL directly for sheet preview
       const highResPhotoDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+      if (isBatchMode) {
+        batchQueue.push(highResPhotoDataUrl);
+        batchPill.innerText = `Batch Mode: ${batchQueue.length} items`;
+        return;
+      }
+
+      resetSheetUI();
       document.getElementById('heldPhotoPreview').src = highResPhotoDataUrl;
       openSheet();
 
       canvas.toBlob(async (blob) => {
         const formData = new FormData();
         formData.append('file', blob, 'capture.jpg');
-
         try {
           const res = await fetch('/api/scan', { method: 'POST', body: formData });
           const data = await res.json();
-
-          if (document.getElementById('doubleCheckToggle').checked) {
-            document.getElementById('itemTitle').innerText = "Double-Checking with Model 2...";
-            const verifyRes = await fetch('/api/double-check', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(data)
-            });
-            const verifiedData = await verifyRes.json();
-            renderResults(verifiedData);
-            saveScan(verifiedData, highResPhotoDataUrl);
-          } else {
-            renderResults(data);
-            saveScan(data, highResPhotoDataUrl);
-          }
+          renderResults(data);
+          saveScan(data, highResPhotoDataUrl);
         } catch (err) {
           document.getElementById('itemTitle').innerText = "Scan Error";
-          console.error(err);
         }
       }, 'image/jpeg', 0.92);
     });
@@ -573,35 +366,101 @@
     function renderResults(data) {
       document.getElementById('itemTitle').innerText = data.item || "Unknown Item";
 
+      // Guided Multi-Angle Prompt
+      if (data.request_secondary && data.guide_prompt) {
+        const banner = document.getElementById('guideBanner');
+        banner.innerText = `AI Request: ${data.guide_prompt}`;
+        banner.style.display = 'block';
+        document.getElementById('secondaryScanBtn').style.display = 'block';
+      }
+
+      // Visual Hazard Hotspots (>= 95% Confidence)
+      const hotspotOverlay = document.getElementById('hotspotOverlay');
+      hotspotOverlay.innerHTML = '';
       const hazardsList = document.getElementById('hazardsList');
       hazardsList.innerHTML = '';
+
       (data.hazards || []).forEach(h => {
+        const hName = typeof h === 'object' ? h.name : h;
+        const confidence = typeof h === 'object' ? (h.confidence || 0) : 0;
+
         const badge = document.createElement('span');
-        const isMercury = h.toLowerCase().includes('mercury');
-        badge.className = `badge ${isMercury ? 'badge-mercury' : 'badge-hazard'}`;
-        badge.innerText = h;
+        badge.className = `badge ${hName.toLowerCase().includes('mercury') ? 'badge-mercury' : 'badge-hazard'}`;
+        badge.innerText = hName;
         hazardsList.appendChild(badge);
+
+        if (typeof h === 'object' && confidence >= 0.95 && h.x !== undefined && h.y !== undefined) {
+          const spot = document.createElement('div');
+          spot.className = 'hazard-hotspot';
+          spot.style.left = `${h.x * 100}%`;
+          spot.style.top = `${h.y * 100}%`;
+          spot.innerText = '!';
+          spot.addEventListener('click', () => alert(`Hazard: ${hName}\n${h.details || ''}`));
+          hotspotOverlay.appendChild(spot);
+        }
       });
 
-      const specsBox = document.getElementById('specsBox');
+      // Specs & Disposal
       if (data.specs && Object.keys(data.specs).length > 0) {
-        specsBox.style.display = 'block';
-        document.getElementById('specsContent').innerHTML = Object.entries(data.specs)
-          .map(([k, v]) => `<div><strong>${k}:</strong> ${v}</div>`).join('');
-      } else {
-        specsBox.style.display = 'none';
+        document.getElementById('specsBox').style.display = 'block';
+        document.getElementById('specsContent').innerHTML = Object.entries(data.specs).map(([k,v])=>`<div><strong>${k}:</strong> ${v}</div>`).join('');
       }
+      document.getElementById('disposeList').innerHTML = (data.dispose || []).map(s => `<li>${s}</li>`).join('');
 
-      document.getElementById('disposeList').innerHTML = (data.dispose || [])
-        .map(step => `<li>${step}</li>`).join('');
-
-      const salvageBox = document.getElementById('salvageBox');
+      // Salvageable Components + Save to Inventory
       if (data.salvage && data.salvage.length > 0) {
-        salvageBox.style.display = 'block';
-        document.getElementById('salvageList').innerHTML = data.salvage.map(s => `<li>${s}</li>`).join('');
-      } else {
-        salvageBox.style.display = 'none';
+        document.getElementById('salvageBox').style.display = 'block';
+        document.getElementById('salvageList').innerHTML = data.salvage.map(item => `
+          <div class="salvage-item-row">
+            <span>${item}</span>
+            <button class="save-part-btn" onclick="saveToInventory('${item.replace(/'/g, "\\'")}', '${(data.item || 'E-Waste').replace(/'/g, "\\'")}')">+ Save</button>
+          </div>
+        `).join('');
       }
+    }
+
+    // Salvage Inventory System
+    function getInventory() { return JSON.parse(localStorage.getItem('revolt_inventory') || '[]'); }
+    function saveToInventory(partName, sourceItem) {
+      const inv = getInventory();
+      inv.unshift({ id: Date.now(), part: partName, source: sourceItem, date: new Date().toLocaleDateString() });
+      localStorage.setItem('revolt_inventory', JSON.stringify(inv));
+      alert(`Added ${partName} to Parts Drawer!`);
+    }
+    function renderInventory() {
+      const container = document.getElementById('inventoryList');
+      const inv = getInventory();
+      if (inv.length === 0) { container.innerHTML = `<div style="text-align:center; color:#71717a; padding:40px 0;">No scavenged parts saved yet.</div>`; return; }
+      container.innerHTML = inv.map(i => `
+        <div class="inventory-card">
+          <div><div style="font-weight:600;">${i.part}</div><div style="font-size:0.75rem; color:#71717a;">From: ${i.source} • ${i.date}</div></div>
+          <button style="background:none; border:none; color:#ef4444; font-size:1.1rem; cursor:pointer;" onclick="deleteInventory(${i.id})">✕</button>
+        </div>
+      `).join('');
+    }
+    function deleteInventory(id) {
+      const inv = getInventory().filter(item => item.id !== id);
+      localStorage.setItem('revolt_inventory', JSON.stringify(inv));
+      renderInventory();
+    }
+
+    // History Storage
+    function getHistory() { return JSON.parse(localStorage.getItem('revolt_history') || '[]'); }
+    function saveScan(data, photoUrl) {
+      const history = getHistory();
+      history.unshift({ id: Date.now(), timestamp: new Date().toISOString(), data, photo: photoUrl });
+      localStorage.setItem('revolt_history', JSON.stringify(history.slice(0, 50)));
+    }
+    function renderHistory() {
+      const container = document.getElementById('historyList');
+      const history = getHistory();
+      if (history.length === 0) { container.innerHTML = `<div style="text-align:center; color:#71717a; padding:40px 0;">No saved scans.</div>`; return; }
+      container.innerHTML = history.map(e => `
+        <div class="card" style="display:flex; gap:12px; align-items:center;">
+          <img src="${e.photo || ''}" style="width:50px; height:50px; border-radius:8px; object-fit:cover;">
+          <div><div style="font-weight:600;">${e.data.item || 'E-Waste Item'}</div><div style="font-size:0.75rem; color:#71717a;">${new Date(e.timestamp).toLocaleDateString()}</div></div>
+        </div>
+      `).join('');
     }
   </script>
 </body>
