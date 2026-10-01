@@ -1,4 +1,3 @@
-  GNU nano 8.7.1                                                                                                                                                                                                                                                                                                          main.py
 import base64
 import json
 import re
@@ -115,3 +114,4 @@ Do not wrap in markdown syntax.
     except Exception as e:
         print(f"Double-check verification error: {e}")
         return sanitize_e_waste_data(payload)
+
