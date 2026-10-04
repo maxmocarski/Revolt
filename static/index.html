@@ -1,608 +1,1250 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>ReVolt - E-Waste Scanner</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-    }
-    body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background-color: #09090b;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      color: #f4f4f5;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ReVolt — E-Waste Vision AI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #000000;
+            --glass-bg: rgba(20, 20, 28, 0.88);
+            --glass-surface: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.16);
+            --glass-pill-active: rgba(255, 255, 255, 0.22);
+            --accent-green: #30d158;
+            --accent-amber: #ffd60a;
+            --accent-red: #ff453a;
+            --accent-blue: #0a84ff;
+            --accent-gold: #ffd700;
+            --text-primary: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.65);
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+        }
+        /* Splash Screen */
+        #splashScreen {
+            position: fixed;
+            inset: 0;
+            background: #000000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.6s ease, visibility 0.6s;
+        }
+        #splashScreen img {
+            max-width: 260px;
+            width: 70%;
+            height: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.15));
+            animation: pulseLogo 2s infinite ease-in-out;
+        }
+        @keyframes pulseLogo {
+            0%, 100% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.04); opacity: 1; }
+        }
+        /* Fullscreen Camera Viewport */
+        .camera-viewport {
+            position: absolute;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            z-index: 1;
+            overflow: hidden;
+        }
+        #videoFeed, #frozenPreview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            inset: 0;
+        }
+        #frozenPreview {
+            display: none;
+            z-index: 2;
+        }
+        /* Camera Alignment Grid Overlay */
+        .camera-grid {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            pointer-events: none;
+            z-index: 3;
+            transition: opacity 0.3s ease;
+        }
+        .grid-cell {
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .center-reticle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 160px;
+            height: 160px;
+            border: 2px dashed rgba(255, 255, 255, 0.35);
+            border-radius: 24px;
+            pointer-events: none;
+        }
+        /* Top Floating Header */
+        .top-bar {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            right: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 20;
+        }
+        .brand-badge {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            padding: 0.4rem 0.85rem;
+            border-radius: 9999px;
+            font-size: 0.9rem;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+        }
+        .glass-selector {
+            display: flex;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            padding: 3px;
+            border-radius: 9999px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        .glass-tab {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.45rem 1.1rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-tab.active {
+            background: var(--glass-pill-active);
+            color: #ffffff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        .nav-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .glass-icon-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: #fff;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .glass-icon-btn.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: #fff;
+        }
+        .glass-icon-btn:active {
+            transform: scale(0.92);
+        }
+        /* Bottom Shutter Controls Overlay */
+        .bottom-controls {
+            position: fixed;
+            bottom: 85px;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.75rem;
+            z-index: 30;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .bottom-controls > * {
+            pointer-events: auto;
+        }
+        body.drawer-open .bottom-controls {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(20px);
+        }
+        .flash-btn-wrapper {
+            width: 60px;
+            display: flex;
+            justify-content: flex-start;
+        }
+        .shutter-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .shutter-btn {
+            width: 74px;
+            height: 74px;
+            border-radius: 50%;
+            border: 4px solid #ffffff;
+            background: transparent;
+            padding: 3px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+            transition: transform 0.15s ease;
+        }
+        .shutter-btn:active {
+            transform: scale(0.92);
+        }
+        .shutter-inner {
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            border-radius: 50%;
+            transition: background 0.2s ease;
+        }
+        .shutter-btn.busy .shutter-inner {
+            background: var(--accent-amber);
+        }
+        .status-stack-wrapper {
+            width: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.5rem;
+        }
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 0.35rem 0.65rem;
+            border-radius: 9999px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+        }
+        .status-dot.offline { background: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
+        .status-dot.analyzing { background: var(--accent-amber); box-shadow: 0 0 8px var(--accent-amber); animation: pulse 1s infinite alternate; }
+        @keyframes pulse {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        .photo-stack {
+            position: relative;
+            width: 46px;
+            height: 46px;
+        }
+        .stack-thumb {
+            position: absolute;
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 2px solid #ffffff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        .stack-thumb:nth-child(1) { transform: rotate(-8deg) translate(-2px, 2px); }
+        .stack-thumb:nth-child(2) { transform: rotate(4deg) translate(2px, -2px); }
+        .stack-thumb:nth-child(3) { transform: rotate(0deg); }
 
-    .view {
-      display: none;
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 64px;
-      overflow-y: auto;
-      padding: 20px;
-    }
-    .view.active { display: block; }
-
-    #cameraView { padding: 0; overflow: hidden; }
-    #viewfinder { width: 100%; height: 100%; object-fit: cover; }
-    #captureCanvas, #thumbCanvas { display: none; }
-
-    .top-header {
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      padding: 16px;
-      background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
-      z-index: 10;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .status-pill {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: #a1a1aa;
-    }
-    .status-dot {
-      width: 8px; height: 8px;
-      background: #10b981;
-      border-radius: 50%;
-    }
-
-    .target-reticle {
-      position: absolute;
-      top: 42%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 240px; height: 240px;
-      border: 2px dashed rgba(255, 255, 255, 0.35);
-      border-radius: 20px;
-      pointer-events: none;
-    }
-
-    .shutter-container {
-      position: absolute;
-      bottom: 24px; left: 50%;
-      transform: translateX(-50%);
-      z-index: 10;
-    }
-    .shutter-btn {
-      width: 72px; height: 72px;
-      border-radius: 50%;
-      border: 4px solid #fff;
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(8px);
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .shutter-btn:active { transform: scale(0.92); }
-    .shutter-inner { width: 54px; height: 54px; border-radius: 50%; background: #fff; }
-
-    .nav-bar {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 64px;
-      background: #121215;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      display: flex; justify-content: space-around; align-items: center;
-      z-index: 100;
-    }
-    .nav-item {
-      background: none; border: none;
-      color: #71717a; padding: 12px;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .nav-item.active { color: #2563eb; }
-    .nav-item svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-
-    .view-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 16px; }
-    .card {
-      background: #18181b;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 14px;
-    }
-    .card-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #a1a1aa; margin-bottom: 6px; }
-    .card-value { font-size: 1.8rem; font-weight: 700; color: #f4f4f5; }
-
-    #backdrop {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.7);
-      z-index: 150;
-      display: none;
-    }
-    #backdrop.active { display: block; }
-
-    .bottom-sheet {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 85vh;
-      background: #141417;
-      border-top: 1px solid rgba(255, 255, 255, 0.15);
-      border-top-left-radius: 24px; border-top-right-radius: 24px;
-      z-index: 200;
-      transform: translateY(100%);
-      transition: transform 0.3s ease;
-      display: flex; flex-direction: column;
-      padding: 16px 20px 24px 20px;
-    }
-    .bottom-sheet.open { transform: translateY(0%); }
-
-    .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .close-btn {
-      background: rgba(255, 255, 255, 0.1);
-      border: none; color: #fff;
-      width: 32px; height: 32px;
-      border-radius: 50%; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-    }
-
-    /* High-Definition Unstretched Photo Container */
-    .photo-preview-container {
-      width: 100%;
-      max-height: 240px;
-      height: 240px;
-      border-radius: 14px;
-      overflow: hidden;
-      margin-bottom: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .photo-preview-container img {
-      max-width: 100%;
-      max-height: 100%;
-      width: auto;
-      height: auto;
-      object-fit: contain;
-      image-rendering: -webkit-optimize-contrast;
-    }
-
-    .badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 12px; border-radius: 10px;
-      font-size: 0.8rem; font-weight: 600;
-      margin-right: 8px; margin-bottom: 8px;
-    }
-    .badge-hazard { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5; }
-    .badge-mercury { background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #fcd34d; }
-
-    .action-btn {
-      width: 100%; padding: 14px;
-      background: #2563eb; color: #fff;
-      border: none; border-radius: 12px;
-      font-weight: 600; font-size: 1rem;
-      cursor: pointer; margin-top: 12px;
-      transition: background 0.2s;
-    }
-    .action-btn:disabled {
-      background: #3f3f46;
-      cursor: not-allowed;
-    }
-
-    .history-card {
-      background: #18181b;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 12px; border-radius: 12px;
-      margin-bottom: 10px;
-      display: flex; align-items: center; gap: 12px;
-      cursor: pointer;
-    }
-    .history-thumb {
-      width: 50px; height: 50px;
-      border-radius: 8px; object-fit: cover;
-      background: #27272a; flex-shrink: 0;
-    }
-  </style>
+        /* Draggable Bottom Drawer Sheet */
+        .bottom-drawer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80vh;
+            background: var(--glass-bg);
+            backdrop-filter: blur(35px) saturate(200%);
+            -webkit-backdrop-filter: blur(35px) saturate(200%);
+            border-top: 1px solid var(--glass-border);
+            border-top-left-radius: 28px;
+            border-top-right-radius: 28px;
+            padding: 0.75rem 1.25rem 2rem 1.25rem;
+            z-index: 25;
+            transform: translateY(calc(100% - 70px));
+            touch-action: none;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.8);
+        }
+        .bottom-drawer.smooth-transition {
+            transition: transform 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.15);
+        }
+        .drawer-handle-zone {
+            width: 100%;
+            padding: 0.25rem 0 0.5rem 0;
+            cursor: grab;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .drawer-handle-bar {
+            width: 42px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.35);
+            border-radius: 3px;
+        }
+        .drawer-header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+        .component-header-title {
+            font-weight: 800;
+            font-size: 1.2rem;
+            letter-spacing: -0.4px;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .confidence-badge {
+            background: rgba(48, 209, 88, 0.2);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+            padding: 0.2rem 0.65rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .drawer-content {
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding-bottom: 2rem;
+        }
+        /* Hazard Warning Boxes */
+        .hazard-alert-box {
+            background: rgba(255, 69, 58, 0.15);
+            border: 1px solid var(--accent-red);
+            border-radius: 16px;
+            padding: 0.85rem 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        .hazard-alert-box.lithium {
+            background: rgba(255, 159, 10, 0.18);
+            border-color: var(--accent-amber);
+        }
+        .hazard-icon {
+            font-size: 1.3rem;
+            color: var(--accent-red);
+            margin-top: 2px;
+        }
+        .hazard-alert-box.lithium .hazard-icon {
+            color: var(--accent-amber);
+        }
+        .hazard-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 0.2rem;
+        }
+        .hazard-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+        /* Specs Grid */
+        .specs-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            padding: 1rem;
+        }
+        .specs-card-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            font-weight: 700;
+        }
+        .specs-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        .spec-item {
+            background: rgba(0, 0, 0, 0.35);
+            padding: 0.65rem 0.85rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .spec-key {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            display: block;
+            text-transform: capitalize;
+        }
+        .spec-val {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-top: 2px;
+        }
+        /* Action Buttons */
+        .action-button-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.85rem;
+            margin-top: 0.5rem;
+        }
+        .action-button-row.single-btn {
+            grid-template-columns: 1fr;
+        }
+        .app-btn {
+            padding: 0.85rem 1rem;
+            border-radius: 16px;
+            border: none;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: transform 0.15s ease, opacity 0.2s ease;
+        }
+        .app-btn:active { transform: scale(0.97); }
+        .btn-dispose {
+            background: var(--accent-blue);
+            color: #ffffff;
+        }
+        .btn-salvage {
+            background: rgba(255, 215, 0, 0.2);
+            border: 1px solid var(--accent-gold);
+            color: var(--accent-gold);
+        }
+        /* Modal Overlays */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+        }
+        .modal-close-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .settings-section {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.65rem 0;
+        }
+        .settings-row:not(:last-child) {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 26px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background-color: rgba(255, 255, 255, 0.2);
+            transition: .3s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--accent-green); }
+        input:checked + .slider:before { transform: translateX(20px); }
+        .btn-danger {
+            background: rgba(255, 69, 58, 0.2);
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+            padding: 0.75rem 1rem;
+            border-radius: 14px;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+        .history-item {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1rem;
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.85rem;
+            align-items: center;
+        }
+        .history-thumb {
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+        .location-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.82rem;
+        }
+        .location-card strong { color: #fff; display: block; font-size: 0.88rem; }
+        
+        /* Analytics Dashboard Styles */
+        .analytics-stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .analytics-stat-number {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--accent-green);
+        }
+    </style>
 </head>
 <body>
-
-  <div id="backdrop"></div>
-
-  <!-- TAB 1: Camera Scanner -->
-  <div class="view active" id="cameraView">
-    <video id="viewfinder" autoplay playsinline muted></video>
-    <canvas id="captureCanvas"></canvas>
-    <canvas id="thumbCanvas"></canvas>
-    <div class="target-reticle"></div>
-
-    <div class="top-header">
-      <div class="status-pill">
-        <span class="status-dot"></span> Local AI Ready
-      </div>
+    <!-- Splash Screen -->
+    <div id="splashScreen">
+        <img src="/static/logo.png" alt="ReVolt Logo" onerror="this.src='/static/ReVolt-%20Congressional%20App.png'">
     </div>
-
-    <div class="shutter-container">
-      <button class="shutter-btn" id="scanBtn">
-        <div class="shutter-inner"></div>
-      </button>
+    <!-- Fullscreen Camera Viewport -->
+    <main class="camera-viewport">
+        <video id="videoFeed" autoplay playsinline></video>
+        <img id="frozenPreview" alt="Captured Frame">
+        <canvas id="captureCanvas" style="display:none;"></canvas>
+        <!-- On-Screen Framing Grid Overlay -->
+        <div id="cameraGrid" class="camera-grid">
+            <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+            <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+            <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+            <div class="center-reticle"></div>
+        </div>
+    </main>
+    <!-- Top Floating Header -->
+    <header class="top-bar">
+        <div class="brand-badge">ReVolt</div>
+        <div class="glass-selector">
+            <button id="modeSingleBtn" class="glass-tab active" onclick="setScanMode('single')">Single</button>
+            <button id="modeMultiBtn" class="glass-tab" onclick="setScanMode('multi')">Multi-Angle</button>
+        </div>
+        <div class="nav-actions">
+            <button id="gridToggleBtn" class="glass-icon-btn active" onclick="toggleGrid()" title="Toggle Camera Grid">
+                <i class="fas fa-border-all"></i>
+            </button>
+            <button class="glass-icon-btn" onclick="openModal('analyticsModal')" title="Server Analytics">
+                <i class="fas fa-chart-bar"></i>
+            </button>
+            <button class="glass-icon-btn" onclick="openModal('historyModal')" title="Scan History">
+                <i class="fas fa-history"></i>
+            </button>
+            <button class="glass-icon-btn" onclick="openModal('settingsModal')" title="Settings">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </header>
+    <!-- Bottom Controls Overlay -->
+    <div class="bottom-controls">
+        <div class="flash-btn-wrapper">
+            <button id="flashToggleBtn" class="glass-icon-btn" onclick="toggleFlash()" title="Toggle Flash">
+                <i class="fas fa-bolt"></i>
+            </button>
+        </div>
+        <div class="shutter-wrapper">
+            <button id="shutterBtn" class="shutter-btn" onclick="triggerScan()">
+                <div class="shutter-inner"></div>
+            </button>
+        </div>
+        <div class="status-stack-wrapper">
+            <div id="multiThumbStack" class="photo-stack" style="display:none;"></div>
+            <div class="status-pill">
+                <span id="statusDot" class="status-dot"></span>
+                <span id="statusText">ready</span>
+            </div>
+        </div>
     </div>
-  </div>
-
-  <!-- TAB 2: Statistics & Carbon Footprint -->
-  <div class="view" id="statsView">
-    <div class="view-title">Environmental Impact</div>
-
-    <div class="card">
-      <div class="card-label">Carbon Footprint Scanned</div>
-      <div class="card-value" id="co2Offset">0.0 kg</div>
-      <div style="font-size: 0.8rem; color: #a1a1aa; margin-top: 4px;">Estimated CO2 associated with scanned electronics</div>
+    <!-- Draggable Bottom Drawer -->
+    <div id="bottomDrawer" class="bottom-drawer smooth-transition">
+        <div class="drawer-handle-zone" id="drawerHandle">
+            <div class="drawer-handle-bar"></div>
+        </div>
+        
+        <div class="drawer-header-bar">
+            <div class="component-header-title" id="drawerStatusTitle">Ready to Scan</div>
+            <button class="glass-icon-btn" style="width: 32px; height: 32px; font-size: 0.75rem;" onclick="resetCameraView()">
+                <i class="fas fa-redo"></i>
+            </button>
+        </div>
+        <div id="drawerContent" class="drawer-content">
+            <div style="color: var(--text-muted); text-align: center; padding: 2rem 0;">
+                Align e-waste component within the framing grid and press shutter to scan.
+            </div>
+        </div>
     </div>
-
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-      <div class="card">
-        <div class="card-label">Items Scanned</div>
-        <div class="card-value" id="totalScans">0</div>
-      </div>
-      <div class="card">
-        <div class="card-label">Mercury Risk</div>
-        <div class="card-value" id="mercuryCount">0</div>
-      </div>
+    <!-- Analytics Modal -->
+    <div id="analyticsModal" class="modal-overlay">
+        <div class="modal-header">
+            <div class="modal-title">Dedicated Server Analytics</div>
+            <button class="modal-close-btn" onclick="closeModal('analyticsModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="analytics-stat-card">
+            <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Total AI Scans Processed</div>
+            <div id="analyticsTotalScans" class="analytics-stat-number">0</div>
+        </div>
+        <div class="settings-section">
+            <strong style="font-size: 1rem; display: block; margin-bottom: 0.75rem;">Category Breakdown</strong>
+            <div id="analyticsCategoriesList">Loading categories...</div>
+        </div>
+        <div class="settings-section">
+            <strong style="font-size: 1rem; display: block; margin-bottom: 0.75rem;">Recent Server Activity</strong>
+            <div id="analyticsRecentList">Loading activity...</div>
+        </div>
     </div>
-
-    <div class="card">
-      <div class="card-label">Scanned Categories</div>
-      <div id="categoryBreakdown" style="font-size: 0.9rem; color: #d4d4d8; margin-top: 8px;">
-        No items recorded yet.
-      </div>
+    <!-- History Modal -->
+    <div id="historyModal" class="modal-overlay">
+        <div class="modal-header">
+            <div class="modal-title">Scan History</div>
+            <button class="modal-close-btn" onclick="closeModal('historyModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="historyList"></div>
     </div>
-  </div>
-
-  <!-- TAB 3: History -->
-  <div class="view" id="historyView">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-      <div class="view-title" style="margin-bottom: 0;">Scan History</div>
-      <button id="clearHistoryBtn" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer;">Clear</button>
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-header">
+            <div class="modal-title">Settings</div>
+            <button class="modal-close-btn" onclick="closeModal('settingsModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="settings-section">
+            <div class="settings-row">
+                <div>
+                    <strong>Material Salvage Mode</strong>
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">Enable "Salvage" button to display recoverable precious metals & components.</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="salvageToggle" onchange="toggleSalvageMode(this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <strong>Camera Alignment Grid</strong>
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">Show 3x3 framing grid overlay on camera view.</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="gridToggleSwitch" onchange="setGridState(this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <strong>AI Double-Check</strong>
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">Secondary validation pass using Qwen model for verified accuracy.</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="doubleCheckToggle" onchange="toggleDoubleCheck(this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+        <div class="settings-section">
+            <strong style="font-size: 1.05rem;">Find e-Recycling Center Near Me</strong>
+            <div style="margin-top: 0.75rem;">
+                <div style="font-weight: 700; color: var(--accent-green); font-size: 0.85rem; margin-bottom: 0.4rem;">Local Transfer Stations (Proof of residency)</div>
+                <div class="location-card"><strong>Fairfield Transfer Station</strong>530 Richard White Way, Fairfield, CT 06824</div>
+                <div class="location-card"><strong>Norwalk Transfer Station</strong>61 Crescent St, Norwalk, CT 06854</div>
+                <div class="location-card"><strong>Trumbull Transfer Station</strong>101 Spring Hill Road, Trumbull, CT 06611</div>
+                <div class="location-card"><strong>Newtown Transfer Station</strong>Ethan Allen Rd, Newtown, CT 06470</div>
+                <div style="font-weight: 700; color: var(--accent-green); font-size: 0.85rem; margin: 0.8rem 0 0.4rem 0;">Retail Drop-Offs</div>
+                <div class="location-card"><strong>Best Buy Norwalk</strong>330 Connecticut Ave, Norwalk, CT 06854</div>
+                <div class="location-card"><strong>Staples Fairfield</strong>1201 Kings Hwy E, Fairfield, CT 06825</div>
+            </div>
+        </div>
+        <div class="settings-section">
+            <button class="btn-danger" onclick="clearLocalHistory()">Clear Scan History</button>
+        </div>
     </div>
-    <div id="historyList"></div>
-  </div>
+    <script>
+        let scanMode = 'single';
+        let capturedImages = [];
+        let flashOn = false;
+        let gridVisible = true;
+        let imageCaptureTrack = null;
+        let aiDoubleCheck = localStorage.getItem('revolt_double_check') === 'true';
+        let salvageEnabled = localStorage.getItem('revolt_salvage_enabled') !== 'false';
 
-  <!-- TAB 4: Stations & Settings -->
-  <div class="view" id="settingsView">
-    <div class="view-title">Recycling & Settings</div>
+        document.getElementById('doubleCheckToggle').checked = aiDoubleCheck;
+        document.getElementById('salvageToggle').checked = salvageEnabled;
 
-    <div class="card">
-      <div class="card-label">E-Waste & Transfer Stations</div>
-      <p style="font-size: 0.85rem; color: #a1a1aa; margin-top: 6px; margin-bottom: 12px;">
-        Locate nearby transfer stations and certified e-waste drop-off facilities.
-      </p>
-      <button class="action-btn" id="findStationsBtn">Find Nearest Stations</button>
-    </div>
-
-    <div class="card">
-      <div class="card-label">AI Verification Settings</div>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-        <span style="font-size: 0.9rem;">Double-Check Scans</span>
-        <input type="checkbox" id="doubleCheckToggle" style="width: 20px; height: 20px; accent-color: #2563eb;">
-      </div>
-      <div style="font-size: 0.75rem; color: #71717a; margin-top: 6px;">
-        Runs secondary local model pass to double-check hazard identification.
-      </div>
-    </div>
-  </div>
-
-  <!-- Bottom Sheet Overlay for Scan Results -->
-  <div class="bottom-sheet" id="sheet">
-    <div class="sheet-header">
-      <div id="itemTitle" style="font-size: 1.2rem; font-weight: 700;">Analyzing Component...</div>
-      <button class="close-btn" id="closeSheetBtn">✕</button>
-    </div>
-
-    <!-- Crisp High-Res Photo Display -->
-    <div class="photo-preview-container">
-      <img id="heldPhotoPreview" src="" alt="Captured E-Waste">
-    </div>
-
-    <div id="hazardsList"></div>
-
-    <div style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 14px;">
-      <div class="card" id="specsBox" style="display:none; margin-bottom:0;">
-        <div class="card-label">Specifications</div>
-        <div id="specsContent" style="font-size: 0.85rem;"></div>
-      </div>
-
-      <div class="card" style="margin-bottom:0;">
-        <div class="card-label">Disposal Guidelines</div>
-        <ul id="disposeList" style="padding-left: 18px; font-size: 0.85rem; color: #d4d4d8;">
-          <li>Analyzing item structure and disposal rules...</li>
-        </ul>
-      </div>
-
-      <div class="card" id="salvageBox" style="display:none; margin-bottom:0;">
-        <div class="card-label">Salvageable Components</div>
-        <ul id="salvageList" style="padding-left: 18px; font-size: 0.85rem; color: #d4d4d8;"></ul>
-      </div>
-
-      <button class="action-btn" id="scanAnotherBtn">Scan Another Item</button>
-    </div>
-  </div>
-
-  <!-- Navigation Bar -->
-  <nav class="nav-bar">
-    <button class="nav-item active" data-tab="cameraView">
-      <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-    </button>
-    <button class="nav-item" data-tab="statsView">
-      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-    </button>
-    <button class="nav-item" data-tab="historyView">
-      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-    </button>
-    <button class="nav-item" data-tab="settingsView">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-    </button>
-  </nav>
-
-  <script>
-    // Navigation Tabs
-    const navItems = document.querySelectorAll('.nav-item');
-    const views = document.querySelectorAll('.view');
-
-    navItems.forEach(item => {
-      item.addEventListener('click', () => {
-        const targetTab = item.getAttribute('data-tab');
-        navItems.forEach(i => i.classList.remove('active'));
-        views.forEach(v => v.classList.remove('active'));
-        item.classList.add('active');
-        document.getElementById(targetTab).classList.add('active');
-
-        if (targetTab === 'statsView') renderStats();
-        if (targetTab === 'historyView') renderHistory();
-      });
-    });
-
-    // Camera Feed
-    const video = document.getElementById('viewfinder');
-    const canvas = document.getElementById('captureCanvas');
-    const thumbCanvas = document.getElementById('thumbCanvas');
-
-    async function initCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-          audio: false
-        });
-        video.srcObject = stream;
-      } catch (err) {
-        console.error("Camera access error:", err);
-      }
-    }
-    initCamera();
-
-    // Sheet Controls
-    const sheet = document.getElementById('sheet');
-    const backdrop = document.getElementById('backdrop');
-
-    function closeSheet() {
-      sheet.classList.remove('open');
-      backdrop.classList.remove('active');
-    }
-    function openSheet() {
-      sheet.classList.add('open');
-      backdrop.classList.add('active');
-    }
-
-    document.getElementById('closeSheetBtn').addEventListener('click', closeSheet);
-    document.getElementById('scanAnotherBtn').addEventListener('click', closeSheet);
-    backdrop.addEventListener('click', closeSheet);
-
-    function resetSheetUI() {
-      document.getElementById('itemTitle').innerText = "Analyzing Component...";
-      document.getElementById('hazardsList').innerHTML = '';
-      document.getElementById('specsBox').style.display = 'none';
-      document.getElementById('specsContent').innerHTML = '';
-      document.getElementById('disposeList').innerHTML = '<li>Analyzing item structure and disposal rules...</li>';
-      document.getElementById('salvageBox').style.display = 'none';
-      document.getElementById('salvageList').innerHTML = '';
-    }
-
-    // History Storage
-    function getHistory() {
-      return JSON.parse(localStorage.getItem('revolt_history') || '[]');
-    }
-
-    function saveScan(data, photoUrl) {
-      const history = getHistory();
-      const entry = { id: Date.now(), timestamp: new Date().toISOString(), data, photo: photoUrl };
-      history.unshift(entry);
-      localStorage.setItem('revolt_history', JSON.stringify(history.slice(0, 50)));
-    }
-
-    function renderStats() {
-      const history = getHistory();
-      let totalCo2 = 0;
-      let mercuryItems = 0;
-      let categories = {};
-
-      history.forEach(item => {
-        const isPrinterOrLarge = (item.data.item || '').toLowerCase().includes('printer') || (item.data.item || '').toLowerCase().includes('monitor');
-        totalCo2 += isPrinterOrLarge ? 12.0 : 2.5;
-
-        if ((item.data.hazards || []).some(h => h.toLowerCase().includes('mercury'))) {
-          mercuryItems++;
+        async function initApp() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+                });
+                document.getElementById('videoFeed').srcObject = stream;
+                imageCaptureTrack = stream.getVideoTracks()[0];
+                updateStatus('ready');
+            } catch (err) {
+                console.error("Camera error:", err);
+                updateStatus('offline');
+            } finally {
+                setTimeout(() => {
+                    const splash = document.getElementById('splashScreen');
+                    splash.style.opacity = '0';
+                    setTimeout(() => splash.style.display = 'none', 600);
+                }, 1000);
+            }
+            initDrawerGesture();
         }
 
-        const cat = item.data.category || 'General E-Waste';
-        categories[cat] = (categories[cat] || 0) + 1;
-      });
+        function toggleGrid() {
+            setGridState(!gridVisible);
+        }
 
-      document.getElementById('totalScans').innerText = history.length;
-      document.getElementById('co2Offset').innerText = `${totalCo2.toFixed(1)} kg`;
-      document.getElementById('mercuryCount').innerText = mercuryItems;
+        function setGridState(visible) {
+            gridVisible = visible;
+            document.getElementById('cameraGrid').style.opacity = visible ? '1' : '0';
+            document.getElementById('gridToggleBtn').classList.toggle('active', visible);
+            document.getElementById('gridToggleSwitch').checked = visible;
+        }
 
-      const categoryContainer = document.getElementById('categoryBreakdown');
-      if (Object.keys(categories).length === 0) {
-        categoryContainer.innerText = "No items recorded yet.";
-      } else {
-        categoryContainer.innerHTML = Object.entries(categories)
-          .map(([k, v]) => `<div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>${k}</span><strong>${v}</strong></div>`)
-          .join('');
-      }
-    }
+        async function toggleFlash() {
+            if (!imageCaptureTrack) return;
+            const capabilities = imageCaptureTrack.getCapabilities();
+            if (!capabilities.torch) {
+                alert("Flash feature is unavailable on this camera hardware.");
+                return;
+            }
+            flashOn = !flashOn;
+            await imageCaptureTrack.applyConstraints({ advanced: [{ torch: flashOn }] });
+            document.getElementById('flashToggleBtn').style.color = flashOn ? 'var(--accent-amber)' : '#ffffff';
+        }
 
-    function renderHistory() {
-      const history = getHistory();
-      const container = document.getElementById('historyList');
-      container.innerHTML = '';
+        function setScanMode(mode) {
+            scanMode = mode;
+            resetCameraView();
+            document.getElementById('modeSingleBtn').classList.toggle('active', mode === 'single');
+            document.getElementById('modeMultiBtn').classList.toggle('active', mode === 'multi');
+            document.getElementById('multiThumbStack').style.display = mode === 'multi' ? 'block' : 'none';
+        }
 
-      if (history.length === 0) {
-        container.innerHTML = `<div style="text-align:center; color:#71717a; padding:40px 0;">No saved scans.</div>`;
-        return;
-      }
+        /* Draggable Bottom Drawer Gesture */
+        let drawer = document.getElementById('bottomDrawer');
+        let drawerHandle = document.getElementById('drawerHandle');
+        let startY = 0;
+        let isExpanded = false;
 
-      history.forEach(entry => {
-        const div = document.createElement('div');
-        div.className = 'history-card';
-        div.innerHTML = `
-          <img class="history-thumb" src="${entry.photo || ''}" alt="thumb">
-          <div style="flex: 1;">
-            <div style="font-weight:600;">${entry.data.item || 'Unknown Component'}</div>
-            <div style="font-size:0.75rem; color:#71717a;">${new Date(entry.timestamp).toLocaleDateString()}</div>
-          </div>
-          <div style="color:#71717a;">›</div>
-        `;
-        div.addEventListener('click', () => {
-          document.getElementById('heldPhotoPreview').src = entry.photo || '';
-          renderResults(entry.data);
-          openSheet();
-        });
-        container.appendChild(div);
-      });
-    }
+        function initDrawerGesture() {
+            const collapsedOffset = window.innerHeight - 70;
+            drawer.style.transform = `translateY(${collapsedOffset}px)`;
 
-    document.getElementById('clearHistoryBtn').addEventListener('click', () => {
-      if (confirm("Clear all scan history?")) {
-        localStorage.removeItem('revolt_history');
-        renderHistory();
-      }
-    });
+            function onPointerDown(e) {
+                startY = e.clientY || (e.touches && e.touches[0].clientY);
+                drawer.classList.remove('smooth-transition');
+                window.addEventListener('pointermove', onPointerMove);
+                window.addEventListener('pointerup', onPointerUp);
+                window.addEventListener('touchmove', onPointerMove);
+                window.addEventListener('touchend', onPointerUp);
+            }
 
-    // Station Finder
-    const findStationsBtn = document.getElementById('findStationsBtn');
-    findStationsBtn.addEventListener('click', () => {
-      const originalText = findStationsBtn.innerText;
-      findStationsBtn.innerText = "Locating nearby stations...";
-      findStationsBtn.disabled = true;
+            function onPointerMove(e) {
+                const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                const deltaY = clientY - startY;
+                let targetY = (isExpanded ? 0 : collapsedOffset) + deltaY;
+                if (targetY < 0) targetY = targetY * 0.2;
+                if (targetY > collapsedOffset) targetY = collapsedOffset + (targetY - collapsedOffset) * 0.2;
+                drawer.style.transform = `translateY(${targetY}px)`;
+            }
 
-      const searchQuery = "e-waste recycling transfer station";
+            function onPointerUp(e) {
+                window.removeEventListener('pointermove', onPointerMove);
+                window.removeEventListener('pointerup', onPointerUp);
+                window.removeEventListener('touchmove', onPointerMove);
+                window.removeEventListener('touchend', onPointerUp);
+                drawer.classList.add('smooth-transition');
+                const clientY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+                const deltaY = clientY - startY;
+                if (deltaY < -60 || (isExpanded && deltaY < 100)) {
+                    snapDrawer(true);
+                } else {
+                    snapDrawer(false);
+                }
+            }
 
-      if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            findStationsBtn.innerText = originalText;
-            findStationsBtn.disabled = false;
-            window.open(`https://www.google.com/maps/search/${encodeURIComponent(searchQuery)}/@${pos.coords.latitude},${pos.coords.longitude},12z`, '_blank');
-          },
-          (err) => {
-            console.warn("Geolocation fallback triggered:", err);
-            findStationsBtn.innerText = originalText;
-            findStationsBtn.disabled = false;
-            window.open(`https://www.google.com/maps/search/${encodeURIComponent(searchQuery)}+near+me`, '_blank');
-          },
-          { timeout: 6000, enableHighAccuracy: true }
-        );
-      } else {
-        findStationsBtn.innerText = originalText;
-        findStationsBtn.disabled = false;
-        window.open(`https://www.google.com/maps/search/${encodeURIComponent(searchQuery)}+near+me`, '_blank');
-      }
-    });
+            drawerHandle.addEventListener('pointerdown', onPointerDown);
+            drawerHandle.addEventListener('touchstart', onPointerDown);
+        }
 
-    // High-Resolution Crisp Capture Execution
-    document.getElementById('scanBtn').addEventListener('click', async () => {
-      resetSheetUI();
+        function snapDrawer(expand) {
+            isExpanded = expand;
+            drawer.classList.add('smooth-transition');
+            const collapsedOffset = window.innerHeight - 70;
+            drawer.style.transform = expand ? 'translateY(0px)' : `translateY(${collapsedOffset}px)`;
+            if (expand) {
+                document.body.classList.add('drawer-open');
+            } else {
+                document.body.classList.remove('drawer-open');
+                resetCameraState();
+            }
+        }
 
-      // Capture frame at full native sensor resolution
-      canvas.width = video.videoWidth || 1280;
-      canvas.height = video.videoHeight || 720;
-      const ctx = canvas.getContext('2d');
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        function resetCameraState() {
+            capturedImages = [];
+            const frozen = document.getElementById('frozenPreview');
+            frozen.style.display = 'none';
+            frozen.src = '';
+            document.getElementById('multiThumbStack').innerHTML = '';
+            document.getElementById('drawerStatusTitle').innerText = 'Ready to Scan';
+            document.getElementById('drawerContent').innerHTML = `
+                <div style="color: var(--text-muted); text-align: center; padding: 2rem 0;">
+                    Align e-waste component within the framing grid and press shutter to scan.
+                </div>`;
+            updateStatus('ready');
+        }
 
-      // Render crisp, high-definition data URL directly for sheet preview
-      const highResPhotoDataUrl = canvas.toDataURL('image/jpeg', 0.92);
-      document.getElementById('heldPhotoPreview').src = highResPhotoDataUrl;
-      openSheet();
+        function resetCameraView() {
+            resetCameraState();
+            snapDrawer(false);
+        }
 
-      canvas.toBlob(async (blob) => {
-        const formData = new FormData();
-        formData.append('file', blob, 'capture.jpg');
+        function captureFrameURI() {
+            const video = document.getElementById('videoFeed');
+            const canvas = document.getElementById('captureCanvas');
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL('image/jpeg', 0.85);
+        }
 
-        try {
-          const res = await fetch('/api/scan', { method: 'POST', body: formData });
-          const data = await res.json();
+        function dataURItoBlob(dataURI) {
+            const byteString = atob(dataURI.split(',')[1]);
+            const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+            return new Blob([ab], { type: mimeString });
+        }
 
-          if (document.getElementById('doubleCheckToggle').checked) {
-            document.getElementById('itemTitle').innerText = "Double-Checking with Model 2...";
-            const verifyRes = await fetch('/api/double-check', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(data)
+        function updateStatus(state) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            dot.className = 'status-dot ' + state;
+            text.innerText = state;
+        }
+
+        function parseRawModelOutput(data) {
+            if (!data) return {};
+            if (typeof data === 'object' && !data.response && !data.content && !data.message) {
+                return data;
+            }
+            let str = '';
+            if (typeof data === 'string') {
+                str = data;
+            } else if (data.response) {
+                str = typeof data.response === 'string' ? data.response : JSON.stringify(data.response);
+            } else if (data.content) {
+                str = typeof data.content === 'string' ? data.content : JSON.stringify(data.content);
+            } else if (data.message && data.message.content) {
+                str = data.message.content;
+            } else {
+                str = JSON.stringify(data);
+            }
+            try {
+                let cleanStr = str.replace(/```json/gi, '').replace(/```/g, '').trim();
+                const match = cleanStr.match(/\{[\s\S]*\}/);
+                if (match) return JSON.parse(match[0]);
+            } catch (e) {
+                console.warn("JSON parsing fallback:", e);
+            }
+            return {
+                item: "Unknown Circuit Board",
+                raw_text: str
+            };
+        }
+
+        function displayAnalysisResults(data, imageURI) {
+            const compName = data.item || data.component_name || data.name || "Unknown Circuit Board";
+            const category = data.category || "General E-Waste";
+            
+            let confidence = 92;
+            if (data.hazard_hotspots && data.hazard_hotspots.length > 0) {
+                const confs = data.hazard_hotspots.map(h => h.confidence || 0.9);
+                confidence = Math.round((confs.reduce((a, b) => a + b, 0) / confs.length) * 100);
+            }
+            document.getElementById('drawerStatusTitle').innerHTML = `
+                <span>${compName}</span>
+                <span class="confidence-badge"><i class="fas fa-check-circle"></i> ${confidence}% Match</span>
+            `;
+
+            const hazardsList = (data.hazards || []).map(h => String(h).toLowerCase());
+            const hasLiIon = hazardsList.some(h => h.includes('lithium') || h.includes('battery') || h.includes('li-ion'));
+            const hasMercury = hazardsList.some(h => h.includes('mercury') || h.includes('ccfl') || h.includes('fluorescent'));
+            const isHazardous = hazardsList.length > 0;
+            let hazardHTML = '';
+
+            if (hasLiIon) {
+                hazardHTML += `
+                    <div class="hazard-alert-box lithium">
+                        <i class="fas fa-bolt hazard-icon"></i>
+                        <div>
+                            <div class="hazard-title" style="color: var(--accent-amber);">High Priority Hazard: Lithium-Ion Battery</div>
+                            <div class="hazard-desc">Risk of fire or thermal runaway if punctured or crushed. Do NOT throw in municipal trash. Deliver to specialized drop-off point.</div>
+                        </div>
+                    </div>`;
+            }
+            if (hasMercury) {
+                hazardHTML += `
+                    <div class="hazard-alert-box">
+                        <i class="fas fa-biohazard hazard-icon"></i>
+                        <div>
+                            <div class="hazard-title">Toxic Hazard: Mercury / CCFL Backlight</div>
+                            <div class="hazard-desc">Contains mercury vapor elements. Must be handled intact without breaking glass tubes.</div>
+                        </div>
+                    </div>`;
+            }
+            if (isHazardous && !hasLiIon && !hasMercury) {
+                hazardHTML += `
+                    <div class="hazard-alert-box">
+                        <i class="fas fa-exclamation-triangle hazard-icon"></i>
+                        <div>
+                            <div class="hazard-title">Hazardous E-Waste Material</div>
+                            <div class="hazard-desc">${data.hazards.join(', ')}</div>
+                        </div>
+                    </div>`;
+            }
+
+            const pm = data.precious_metals || {};
+            const pmParts = [];
+            if (pm.gold_mg) pmParts.push(`Gold: ${pm.gold_mg}mg`);
+            if (pm.copper_g) pmParts.push(`Copper: ${pm.copper_g}g`);
+            if (pm.silver_mg) pmParts.push(`Silver: ${pm.silver_mg}mg`);
+            if (pm.tantalum_mg) pmParts.push(`Tantalum: ${pm.tantalum_mg}mg`);
+            const metalsStr = pmParts.length > 0 ? pmParts.join(', ') : "None Detected";
+
+            // Fixed template string syntax error here
+            let specsHTML = `
+                <div class="spec-item"><span class="spec-key">Category</span><span class="spec-val">${category}</span></div>
+                <div class="spec-item"><span class="spec-key">Precious Metals</span><span class="spec-val">${metalsStr}</span></div>
+            `;
+            if (data.specs && typeof data.specs === 'object') {
+                for (const [key, val] of Object.entries(data.specs)) {
+                    specsHTML += `<div class="spec-item"><span class="spec-key">${key}</span><span class="spec-val">${val}</span></div>`;
+                }
+            }
+
+            // Render knowledge base source citations if available
+            let sourcesHTML = '';
+            if (data.sources && Array.isArray(data.sources) && data.sources.length > 0) {
+                sourcesHTML = `
+                    <div class="specs-card" style="margin-top: 0.75rem;">
+                        <div class="specs-card-title">Verified EPA Safety Citations</div>
+                        ${data.sources.map(s => `<div style="font-size: 0.78rem; margin-bottom: 0.3rem;"><a href="${s[1]}" target="_blank" style="color: var(--accent-blue); text-decoration: underline;">${s[0]}</a></div>`).join('')}
+                    </div>`;
+            }
+
+            const salvageButtonHTML = salvageEnabled ? `
+                <button class="app-btn btn-salvage" onclick="showSalvageModal('${encodeURIComponent(JSON.stringify(data))}')">
+                    <i class="fas fa-cubes"></i> Salvage Materials
+                </button>` : '';
+
+            document.getElementById('drawerContent').innerHTML = `
+                ${hazardHTML}
+                <div class="specs-card">
+                    <div class="specs-card-title">Technical Specifications</div>
+                    <div class="specs-grid">
+                        ${specsHTML}
+                    </div>
+                </div>
+                ${sourcesHTML}
+                <div class="action-button-row ${salvageEnabled ? '' : 'single-btn'}">
+                    <button class="app-btn btn-dispose" onclick="openModal('settingsModal')">
+                        <i class="fas fa-recycle"></i> Dispose Guidance
+                    </button>
+                    ${salvageButtonHTML}
+                </div>
+            `;
+        }
+
+        async function triggerScan() {
+            const frameURI = captureFrameURI();
+            if (scanMode === 'single') {
+                const frozen = document.getElementById('frozenPreview');
+                frozen.src = frameURI;
+                frozen.style.display = 'block';
+                updateStatus('analyzing');
+                document.getElementById('drawerStatusTitle').innerText = 'Analyzing Component...';
+                document.getElementById('drawerContent').innerHTML = `
+                    <div style="text-align: center; padding: 2.5rem 0;">
+                        <i class="fas fa-circle-notch fa-spin fa-2x" style="color: var(--accent-amber); margin-bottom: 0.85rem;"></i>
+                        <div style="font-weight: 600;">Analyzing circuitry & materials...</div>
+                    </div>`;
+                snapDrawer(true);
+                try {
+                    const formData = new FormData();
+                    formData.append('file', dataURItoBlob(frameURI), 'component.jpg');
+                    const res = await fetch('/api/scan', { method: 'POST', body: formData });
+                    const rawData = await res.json();
+                    let data = parseRawModelOutput(rawData);
+                    if (aiDoubleCheck) {
+                        document.getElementById('drawerStatusTitle').innerText = 'Verifying with Qwen...';
+                        const doubleRes = await fetch('/api/double-check', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(data)
+                        });
+                        const doubleRaw = await doubleRes.json();
+                        data = parseRawModelOutput(doubleRaw);
+                    }
+                    displayAnalysisResults(data, frameURI);
+                    saveToHistory(data, frameURI);
+                } catch (err) {
+                    document.getElementById('drawerContent').innerHTML = `<div style="color: var(--accent-red); padding: 1rem;">Scan error: ${err.message}</div>`;
+                } finally {
+                    updateStatus('ready');
+                }
+            } else {
+                capturedImages.push(frameURI);
+                const thumb = document.createElement('img');
+                thumb.src = frameURI;
+                thumb.className = 'stack-thumb';
+                document.getElementById('multiThumbStack').appendChild(thumb);
+                if (capturedImages.length < 3) {
+                    document.getElementById('drawerStatusTitle').innerText = `Angle Captured (${capturedImages.length}/3)`;
+                    snapDrawer(true);
+                    document.getElementById('drawerContent').innerHTML = `<div style="text-align:center; padding:1.5rem 0;">Rotate component to angle ${capturedImages.length + 1} and press shutter...</div>`;
+                } else {
+                    updateStatus('analyzing');
+                    document.getElementById('drawerStatusTitle').innerText = 'Analyzing Multi-Angle...';
+                    document.getElementById('drawerContent').innerHTML = `
+                        <div style="text-align: center; padding: 2.5rem 0;">
+                            <i class="fas fa-circle-notch fa-spin fa-2x" style="color: var(--accent-amber); margin-bottom: 0.85rem;"></i>
+                            <div style="font-weight: 600;">Processing 3D multi-angle inspection...</div>
+                        </div>`;
+                    snapDrawer(true);
+                    try {
+                        const formData = new FormData();
+                        capturedImages.forEach((uri, idx) => {
+                            formData.append('files', dataURItoBlob(uri), `angle_${idx + 1}.jpg`);
+                        });
+                        const res = await fetch('/api/scan-multi', { method: 'POST', body: formData });
+                        const rawData = await res.json();
+                        let data = parseRawModelOutput(rawData);
+                        if (aiDoubleCheck) {
+                            document.getElementById('drawerStatusTitle').innerText = 'Verifying with Qwen...';
+                            const doubleRes = await fetch('/api/double-check', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(data)
+                            });
+                            const doubleRaw = await doubleRes.json();
+                            data = parseRawModelOutput(doubleRaw);
+                        }
+                        displayAnalysisResults(data, capturedImages[0]);
+                        saveToHistory(data, capturedImages[0]);
+                    } catch (err) {
+                        document.getElementById('drawerContent').innerHTML = `<div style="color: var(--accent-red); padding: 1rem;">Multi-angle scan error: ${err.message}</div>`;
+                    } finally {
+                        updateStatus('ready');
+                    }
+                }
+            }
+        }
+
+        function showSalvageModal(encodedData) {
+            const data = JSON.parse(decodeURIComponent(encodedData));
+            const title = data.item || data.component_name || data.name || 'Component';
+            
+            let msg = `Salvageable Materials Identified in ${title}:\n\n`;
+            if (data.salvage && Array.isArray(data.salvage) && data.salvage.length > 0) {
+                msg += data.salvage.map(s => `• ${s}`).join('\n');
+            } else {
+                const pm = data.precious_metals || {};
+                msg += `• Precious Metals: Gold ${pm.gold_mg || 0}mg, Copper ${pm.copper_g || 0}g, Silver ${pm.silver_mg || 0}mg\n` +
+                       `• High-value Components: IC packages, ferrite inductors, surface-mount capacitors`;
+            }
+            alert(msg);
+        }
+
+        function saveToHistory(data, imageURI) {
+            let history = JSON.parse(localStorage.getItem('revolt_history') || '[]');
+            const title = data.item || data.component_name || data.name || data.category || "E-Waste Scan";
+            history.unshift({
+                timestamp: new Date().toLocaleString(),
+                title: title,
+                image: imageURI,
+                data: data
             });
-            const verifiedData = await verifyRes.json();
-            renderResults(verifiedData);
-            saveScan(verifiedData, highResPhotoDataUrl);
-          } else {
-            renderResults(data);
-            saveScan(data, highResPhotoDataUrl);
-          }
-        } catch (err) {
-          document.getElementById('itemTitle').innerText = "Scan Error";
-          console.error(err);
+            localStorage.setItem('revolt_history', JSON.stringify(history.slice(0, 25)));
+            renderHistory();
         }
-      }, 'image/jpeg', 0.92);
-    });
 
-    function renderResults(data) {
-      document.getElementById('itemTitle').innerText = data.item || "Unknown Item";
+        function renderHistory() {
+            let history = JSON.parse(localStorage.getItem('revolt_history') || '[]');
+            const container = document.getElementById('historyList');
+            if (history.length === 0) {
+                container.innerHTML = `<div style="color: var(--text-muted); text-align: center; padding: 2rem 0;">No scan history recorded.</div>`;
+                return;
+            }
+            container.innerHTML = history.map(item => `
+                <div class="history-item">
+                    <img src="${item.image}" class="history-thumb" alt="Thumb">
+                    <div>
+                        <strong>${item.title}</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">${item.timestamp}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
 
-      const hazardsList = document.getElementById('hazardsList');
-      hazardsList.innerHTML = '';
-      (data.hazards || []).forEach(h => {
-        const badge = document.createElement('span');
-        const isMercury = h.toLowerCase().includes('mercury');
-        badge.className = `badge ${isMercury ? 'badge-mercury' : 'badge-hazard'}`;
-        badge.innerText = h;
-        hazardsList.appendChild(badge);
-      });
+        async function fetchAnalytics() {
+            try {
+                const res = await fetch('/api/analytics');
+                const data = await res.json();
+                document.getElementById('analyticsTotalScans').innerText = data.total_scans || 0;
+                
+                const catContainer = document.getElementById('analyticsCategoriesList');
+                if (data.category_breakdown && Object.keys(data.category_breakdown).length > 0) {
+                    catContainer.innerHTML = Object.entries(data.category_breakdown)
+                        .map(([cat, count]) => `<div style="display:flex; justify-content:space-between; padding: 0.4rem 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.85rem;"><span>${cat}</span><strong style="color:var(--accent-green);">${count}</strong></div>`)
+                        .join('');
+                } else {
+                    catContainer.innerHTML = `<div style="color: var(--text-muted); font-size: 0.85rem;">No category data recorded yet.</div>`;
+                }
 
-      const specsBox = document.getElementById('specsBox');
-      if (data.specs && Object.keys(data.specs).length > 0) {
-        specsBox.style.display = 'block';
-        document.getElementById('specsContent').innerHTML = Object.entries(data.specs)
-          .map(([k, v]) => `<div><strong>${k}:</strong> ${v}</div>`).join('');
-      } else {
-        specsBox.style.display = 'none';
-      }
+                const recentContainer = document.getElementById('analyticsRecentList');
+                if (data.recent_scans && data.recent_scans.length > 0) {
+                    recentContainer.innerHTML = data.recent_scans.map(s => `
+                        <div style="background: rgba(0,0,0,0.3); padding: 0.6rem; border-radius: 10px; margin-bottom: 0.5rem; font-size: 0.8rem;">
+                            <strong style="color:#fff;">${s.item}</strong> (${s.category})
+                            <div style="color: var(--text-muted); font-size: 0.72rem; margin-top: 2px;">Mode: ${s.mode} | Hazards: ${s.hazards} | ${s.timestamp}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    recentContainer.innerHTML = `<div style="color: var(--text-muted); font-size: 0.85rem;">No recent activity logged.</div>`;
+                }
+            } catch (e) {
+                console.error("Failed to load analytics:", e);
+            }
+        }
 
-      document.getElementById('disposeList').innerHTML = (data.dispose || [])
-        .map(step => `<li>${step}</li>`).join('');
+        function clearLocalHistory() {
+            if (confirm("Clear all locally saved scan history?")) {
+                localStorage.removeItem('revolt_history');
+                renderHistory();
+            }
+        }
 
-      const salvageBox = document.getElementById('salvageBox');
-      if (data.salvage && data.salvage.length > 0) {
-        salvageBox.style.display = 'block';
-        document.getElementById('salvageList').innerHTML = data.salvage.map(s => `<li>${s}</li>`).join('');
-      } else {
-        salvageBox.style.display = 'none';
-      }
-    }
-  </script>
+        function toggleSalvageMode(enabled) {
+            salvageEnabled = enabled;
+            localStorage.setItem('revolt_salvage_enabled', enabled);
+        }
+
+        function toggleDoubleCheck(enabled) {
+            aiDoubleCheck = enabled;
+            localStorage.setItem('revolt_double_check', enabled);
+        }
+
+        function openModal(id) {
+            if (id === 'historyModal') renderHistory();
+            if (id === 'analyticsModal') fetchAnalytics();
+            document.getElementById(id).style.display = 'flex';
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
 </body>
 </html>
