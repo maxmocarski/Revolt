@@ -4,4 +4,4 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 EXPOSE 8502
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8502"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8502", "--log-level", "info", "--use-colors"]
