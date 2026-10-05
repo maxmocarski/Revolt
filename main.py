@@ -44,6 +44,8 @@ prompt = (
     "If a hazard is present with high confidence (>= 0.85), specify bounding center coordinates in percentages (x_pct, y_pct from 0-100). "
     "Estimate salvageable precious metals (gold_mg, copper_g, silver_mg, tantalum_mg). "
     "Transcribe every line of printed label text into 'text_lines'. "
+    "In 'specs', only include details you can actually see or read, written in plain everyday words "
+    "a non-expert understands (for example 'Folding laptop', not 'clamshell'). Leave out anything unknown. "
     "JSON structure MUST match: "
     '{"item": "...", "category": "<one of the categories above>", "hazards": [...], '
     '"hazard_hotspots": [{"hazard": "...", "x_pct": 50, "y_pct": 30, "confidence": 0.90, "details": "..."}], '
@@ -179,8 +181,8 @@ def _without(items: List[str], known: List[str]) -> List[str]:
 def enrich_analysis(raw: Any) -> Dict[str, Any]:
     """Validate model JSON and combine it with the curated knowledge base and label decoder.
 
-    Safety guidance (hazards, dispose, salvage) always comes from knowledge.py.
-    Anything the model adds is returned separately as ai_* so the UI can mark it unverified.
+    Safety guidance (hazards, dispose, salvage) always comes from knowledge.py, and specs come from
+    the label decoder. Anything the model adds is returned separately as ai_* so the UI can mark it unverified.
     """
     if not isinstance(raw, dict):
         raise ValueError("model reply was not a JSON object")
@@ -193,8 +195,7 @@ def enrich_analysis(raw: Any) -> Dict[str, Any]:
     text_lines = _str_list(raw.get("text_lines"))
     decoded, complete = labels.decode(key, text_lines)
     decoded_keys = {k.lower() for k in decoded}
-    specs = {k: v for k, v in _clean_specs(raw.get("specs")).items() if k.lower() not in decoded_keys}
-    specs.update(decoded)
+    ai_specs = {k: v for k, v in _clean_specs(raw.get("specs")).items() if k.lower() not in decoded_keys}
 
     return {
         "item": item,
@@ -206,7 +207,8 @@ def enrich_analysis(raw: Any) -> Dict[str, Any]:
         "salvage": list(info["salvage"]),
         "ai_salvage": _without(_str_list(raw.get("salvage")), info["salvage"]),
         "sources": [list(s) for s in info["sources"] or []],
-        "specs": specs,
+        "specs": decoded,
+        "ai_specs": ai_specs,
         "text_lines": text_lines,
         "label_hint": not complete,
         "precious_metals": _clean_metals(raw.get("precious_metals")),
@@ -272,7 +274,7 @@ async def double_check(data: Dict[str, Any]):
         "item": data.get("item"),
         "category": data.get("category"),
         "hazards": data.get("ai_hazards", []),
-        "specs": data.get("specs", {}),
+        "specs": data.get("ai_specs", data.get("specs", {})),
         "text_lines": data.get("text_lines", []),
         "precious_metals": data.get("precious_metals", {}),
         "salvage": data.get("ai_salvage", []),
@@ -291,6 +293,9 @@ async def double_check(data: Dict[str, Any]):
         log.warning("Double-check failed: %s", e)
         return {**data, "double_check_failed": True}
 
+def category_label(category: Optional[str]) -> str:
+    return knowledge.LABELS[match_category(category or "", "")]
+
 @app.get("/api/analytics")
 def get_analytics():
     try:
@@ -305,16 +310,16 @@ def get_analytics():
         log.exception("Analytics query error")
         return {"error": "Analytics are unavailable.", "total_scans": 0, "category_breakdown": {}, "recent_scans": []}
 
-    # Rows from before categories were normalized hold free text, so fall back to it.
+    # Rows from before categories were normalized hold free text; map them the same way new scans are.
     category_breakdown: Dict[str, int] = {}
     for category, count in category_rows:
-        name = knowledge.LABELS.get(category, category or "Unknown")
+        name = category_label(category)
         category_breakdown[name] = category_breakdown.get(name, 0) + count
     return {
         "total_scans": total_scans,
         "category_breakdown": category_breakdown,
         "recent_scans": [
-            {"item": r[0], "category": knowledge.LABELS.get(r[1], r[1]), "mode": r[2], "hazards": r[3], "timestamp": r[4]}
+            {"item": r[0], "category": category_label(r[1]), "mode": r[2], "hazards": r[3], "timestamp": r[4]}
             for r in recent_rows
         ],
     }
