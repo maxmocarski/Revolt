@@ -55,8 +55,8 @@ services:
     container_name: revolt
     restart: unless-stopped
     ports:
-      # 127.0.0.1 = only this server (Tailscale serve reaches it); host 8502 -> container 8501
-      - "127.0.0.1:8502:8501"
+      # 127.0.0.1 = only this server (Tailscale serve reaches it); host 8502 -> container 8502
+      - "127.0.0.1:8502:8502"
     environment:
       - OLLAMA_HOST=http://ollama:11434
       - REVOLT_MODEL=gemma3:12b
