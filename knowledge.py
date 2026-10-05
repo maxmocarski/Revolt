@@ -3,7 +3,22 @@
 Each entry: hazards, salvage, dispose, sources. sources=None means UNVERIFIED and
 the app says so on screen. Only add a source after you have actually read it.
 """
-BATTERY_WARNING = "Contains a lithium-ion battery: fire risk if punctured or crushed."
+# Display names for the INFO keys below.
+LABELS = {
+    "motherboard": "Motherboard / circuit board",
+    "ram": "RAM (memory)",
+    "laptop": "Laptop",
+    "phone": "Phone",
+    "battery": "Battery",
+    "hard_drive": "Hard drive / SSD",
+    "gpu": "Graphics card",
+    "cable_or_charger": "Cable or charger",
+    "printer": "Printer",
+    "display": "Monitor / display",
+    "other": "Other e-waste",
+}
+
+BATTERY_WARNING ="Contains a lithium-ion battery: fire risk if punctured or crushed."
 
 _LCD_SOURCES = [
     ("Purdue (EPA-funded research)",

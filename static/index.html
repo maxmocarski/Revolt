@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ReVolt — E-Waste Vision AI</title>
+    <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -19,6 +21,10 @@
             --accent-gold: #ffd700;
             --text-primary: #ffffff;
             --text-muted: rgba(255, 255, 255, 0.65);
+            /* Space for the notch / home indicator on phones (0 elsewhere) */
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --drawer-peek: calc(84px + var(--safe-bottom));
         }
         * {
             box-sizing: border-box;
@@ -28,8 +34,9 @@
             -webkit-tap-highlight-color: transparent;
         }
         html, body {
-            width: 100vw;
+            width: 100%;
             height: 100vh;
+            height: 100dvh;
             overflow: hidden;
             background-color: var(--bg-dark);
             color: var(--text-primary);
@@ -62,8 +69,6 @@
         .camera-viewport {
             position: absolute;
             inset: 0;
-            width: 100vw;
-            height: 100vh;
             background: #000;
             z-index: 1;
             overflow: hidden;
@@ -107,13 +112,28 @@
         /* Top Floating Header */
         .top-bar {
             position: fixed;
-            top: 1rem;
+            top: calc(var(--safe-top) + 0.75rem);
             left: 1rem;
             right: 1rem;
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             justify-content: space-between;
+            gap: 0.6rem;
             z-index: 20;
+        }
+        @media (max-width: 560px) {
+            .top-bar .glass-selector {
+                order: 3;
+                margin: 0 auto;
+            }
+            .top-bar .glass-icon-btn {
+                width: 36px;
+                height: 36px;
+            }
+            .nav-actions {
+                gap: 0.4rem;
+            }
         }
         .brand-badge {
             background: var(--glass-bg);
@@ -125,6 +145,13 @@
             font-size: 0.9rem;
             font-weight: 800;
             letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+        }
+        .brand-badge img {
+            width: 18px;
+            height: 18px;
+            margin-right: 0.4rem;
         }
         .glass-selector {
             display: flex;
@@ -181,7 +208,7 @@
         /* Bottom Shutter Controls Overlay */
         .bottom-controls {
             position: fixed;
-            bottom: 85px;
+            bottom: calc(var(--drawer-peek) + 15px);
             left: 0;
             right: 0;
             display: flex;
@@ -294,15 +321,16 @@
             left: 0;
             right: 0;
             height: 80vh;
+            height: 80dvh;
             background: var(--glass-bg);
             backdrop-filter: blur(35px) saturate(200%);
             -webkit-backdrop-filter: blur(35px) saturate(200%);
             border-top: 1px solid var(--glass-border);
             border-top-left-radius: 28px;
             border-top-right-radius: 28px;
-            padding: 0.75rem 1.25rem 2rem 1.25rem;
+            padding: 0.75rem 1.25rem calc(1rem + var(--safe-bottom)) 1.25rem;
             z-index: 25;
-            transform: translateY(calc(100% - 70px));
+            transform: translateY(calc(100% - var(--drawer-peek)));
             touch-action: none;
             display: flex;
             flex-direction: column;
@@ -338,8 +366,10 @@
             letter-spacing: -0.4px;
             color: #ffffff;
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.35rem 0.5rem;
+            min-width: 0;
         }
         .confidence-badge {
             background: rgba(48, 209, 88, 0.2);
@@ -471,7 +501,7 @@
             z-index: 100;
             display: none;
             flex-direction: column;
-            padding: 1.5rem;
+            padding: calc(var(--safe-top) + 1.25rem) 1.25rem calc(var(--safe-bottom) + 1.5rem);
             overflow-y: auto;
         }
         .modal-header {
@@ -591,12 +621,84 @@
             font-weight: 900;
             color: var(--accent-green);
         }
+        /* Result Sections */
+        .splash-wordmark {
+            font-size: 3rem;
+            font-weight: 900;
+            letter-spacing: -1px;
+            animation: pulseLogo 2s infinite ease-in-out;
+        }
+        .hazard-text {
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+        .hazard-alert-box.safe {
+            background: rgba(48, 209, 88, 0.12);
+            border-color: var(--accent-green);
+        }
+        .hazard-alert-box.safe .hazard-icon { color: var(--accent-green); }
+        .result-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            padding: 1rem;
+        }
+        .result-section.ai {
+            border-style: dashed;
+        }
+        .result-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+        .result-list li {
+            display: flex;
+            gap: 0.6rem;
+            align-items: flex-start;
+        }
+        .result-list li i {
+            width: 1rem;
+            margin-top: 3px;
+            text-align: center;
+            color: var(--accent-green);
+        }
+        .result-section.ai .result-list li i { color: var(--text-muted); }
+        .result-note {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.45;
+            margin-top: -0.4rem;
+        }
+        .result-note a { color: var(--accent-blue); }
+        .unverified-label {
+            color: var(--accent-amber);
+            font-weight: 700;
+        }
+        .info-box {
+            background: rgba(10, 132, 255, 0.15);
+            border: 1px solid var(--accent-blue);
+            border-radius: 16px;
+            padding: 0.75rem 1rem;
+            font-size: 0.82rem;
+            line-height: 1.4;
+            display: flex;
+            gap: 0.65rem;
+            align-items: flex-start;
+        }
+        .info-box i { color: var(--accent-blue); margin-top: 2px; }
+        .history-item { cursor: pointer; }
     </style>
 </head>
 <body>
+    <div id="safeAreaProbe" style="position: fixed; left: 0; bottom: 0; width: 0; height: var(--safe-bottom); visibility: hidden; pointer-events: none;"></div>
     <!-- Splash Screen -->
     <div id="splashScreen">
-        <img src="/static/logo.png" alt="ReVolt Logo" onerror="this.src='/static/ReVolt-%20Congressional%20App.png'">
+        <!-- The text wordmark below is only a fallback in case the logo fails to load -->
+        <img src="/static/logo.svg" alt="ReVolt Logo" style="display:none;" onload="this.style.display='block'; this.nextElementSibling.remove();">
+        <div class="splash-wordmark">ReVolt</div>
     </div>
     <!-- Fullscreen Camera Viewport -->
     <main class="camera-viewport">
@@ -613,7 +715,7 @@
     </main>
     <!-- Top Floating Header -->
     <header class="top-bar">
-        <div class="brand-badge">ReVolt</div>
+        <div class="brand-badge"><img src="/static/icon.svg" alt="">Re<span style="color: var(--accent-green);">Volt</span></div>
         <div class="glass-selector">
             <button id="modeSingleBtn" class="glass-tab active" onclick="setScanMode('single')">Single</button>
             <button id="modeMultiBtn" class="glass-tab" onclick="setScanMode('multi')">Multi-Angle</button>
@@ -708,7 +810,7 @@
             <div class="settings-row">
                 <div>
                     <strong>Material Salvage Mode</strong>
-                    <div style="font-size: 0.78rem; color: var(--text-muted);">Enable "Salvage" button to display recoverable precious metals & components.</div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">Show salvageable parts and estimated precious metals in scan results.</div>
                 </div>
                 <label class="switch">
                     <input type="checkbox" id="salvageToggle" onchange="toggleSalvageMode(this.checked)">
@@ -727,8 +829,8 @@
             </div>
             <div class="settings-row">
                 <div>
-                    <strong>AI Double-Check</strong>
-                    <div style="font-size: 0.78rem; color: var(--text-muted);">Secondary validation pass using Qwen model for verified accuracy.</div>
+                    <strong>AI Second Opinion</strong>
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">A second AI model reviews the first answer. It reads the result, not the photo, and adds time to each scan.</div>
                 </div>
                 <label class="switch">
                     <input type="checkbox" id="doubleCheckToggle" onchange="toggleDoubleCheck(this.checked)">
@@ -754,16 +856,58 @@
         </div>
     </div>
     <script>
+        const MULTI_ANGLE_COUNT = 3;
+        const UPLOAD_MAX_EDGE = 1024;   // px, long edge of the image sent to the model
+        const THUMB_MAX_EDGE = 160;     // px, long edge of history thumbnails
+        const HISTORY_LIMIT = 25;
+
         let scanMode = 'single';
-        let capturedImages = [];
+        let capturedImages = [];        // multi-angle captures: { frame, thumb }
+        let scanning = false;
         let flashOn = false;
         let gridVisible = true;
         let imageCaptureTrack = null;
-        let aiDoubleCheck = localStorage.getItem('revolt_double_check') === 'true';
-        let salvageEnabled = localStorage.getItem('revolt_salvage_enabled') !== 'false';
+        let aiDoubleCheck = storageGet('revolt_double_check') === 'true';
+        let salvageEnabled = storageGet('revolt_salvage_enabled') !== 'false';
 
         document.getElementById('doubleCheckToggle').checked = aiDoubleCheck;
         document.getElementById('salvageToggle').checked = salvageEnabled;
+
+        /* Helpers */
+        // Storage can be full or blocked (private browsing), so never let it throw.
+        function storageGet(key) {
+            try { return localStorage.getItem(key); } catch (e) { return null; }
+        }
+
+        function storageSet(key, value) {
+            try {
+                localStorage.setItem(key, value);
+                return true;
+            } catch (e) {
+                console.warn('Could not save to local storage:', e);
+                return false;
+            }
+        }
+
+        // Everything the model returns is untrusted text: escape it before it goes into HTML.
+        function esc(value) {
+            return String(value ?? '').replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
+
+        function safeUrl(url) {
+            try {
+                const parsed = new URL(url);
+                return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.href : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function asList(value) {
+            return Array.isArray(value) ? value : [];
+        }
 
         async function initApp() {
             try {
@@ -799,14 +943,19 @@
 
         async function toggleFlash() {
             if (!imageCaptureTrack) return;
-            const capabilities = imageCaptureTrack.getCapabilities();
+            const capabilities = imageCaptureTrack.getCapabilities ? imageCaptureTrack.getCapabilities() : {};
             if (!capabilities.torch) {
                 alert("Flash feature is unavailable on this camera hardware.");
                 return;
             }
-            flashOn = !flashOn;
-            await imageCaptureTrack.applyConstraints({ advanced: [{ torch: flashOn }] });
-            document.getElementById('flashToggleBtn').style.color = flashOn ? 'var(--accent-amber)' : '#ffffff';
+            try {
+                await imageCaptureTrack.applyConstraints({ advanced: [{ torch: !flashOn }] });
+                flashOn = !flashOn;
+                document.getElementById('flashToggleBtn').style.color = flashOn ? 'var(--accent-amber)' : '#ffffff';
+            } catch (err) {
+                console.error("Flash error:", err);
+                alert("Couldn't switch the flash on this device.");
+            }
         }
 
         function setScanMode(mode) {
@@ -823,12 +972,25 @@
         let startY = 0;
         let isExpanded = false;
 
+        // How far down the drawer moves when collapsed, leaving only its top strip visible.
+        function drawerCollapsedOffset() {
+            // Matches --drawer-peek in the CSS: an 84px strip plus the home-indicator inset.
+            const safeBottom = document.getElementById('safeAreaProbe').offsetHeight;
+            return Math.max(0, drawer.offsetHeight - 84 - safeBottom);
+        }
+
+        function positionDrawer() {
+            drawer.style.transform = isExpanded ? 'translateY(0px)' : `translateY(${drawerCollapsedOffset()}px)`;
+        }
+
         function initDrawerGesture() {
-            const collapsedOffset = window.innerHeight - 70;
-            drawer.style.transform = `translateY(${collapsedOffset}px)`;
+            let collapsedOffset = drawerCollapsedOffset();
+            positionDrawer();
+            window.addEventListener('resize', positionDrawer);
 
             function onPointerDown(e) {
                 startY = e.clientY || (e.touches && e.touches[0].clientY);
+                collapsedOffset = drawerCollapsedOffset();
                 drawer.classList.remove('smooth-transition');
                 window.addEventListener('pointermove', onPointerMove);
                 window.addEventListener('pointerup', onPointerUp);
@@ -864,17 +1026,27 @@
             drawerHandle.addEventListener('touchstart', onPointerDown);
         }
 
+        function multiAngleInProgress() {
+            return scanMode === 'multi' && capturedImages.length > 0 && capturedImages.length < MULTI_ANGLE_COUNT;
+        }
+
         function snapDrawer(expand) {
             isExpanded = expand;
             drawer.classList.add('smooth-transition');
-            const collapsedOffset = window.innerHeight - 70;
-            drawer.style.transform = expand ? 'translateY(0px)' : `translateY(${collapsedOffset}px)`;
+            positionDrawer();
             if (expand) {
                 document.body.classList.add('drawer-open');
             } else {
                 document.body.classList.remove('drawer-open');
-                resetCameraState();
+                // Keep partial multi-angle captures and in-flight scans when the drawer closes.
+                if (!scanning && !multiAngleInProgress()) resetCameraState();
             }
+        }
+
+        function idleMessage() {
+            return scanMode === 'multi'
+                ? `Take ${MULTI_ANGLE_COUNT} photos of the item from different angles.`
+                : 'Align e-waste component within the framing grid and press shutter to scan.';
         }
 
         function resetCameraState() {
@@ -883,26 +1055,35 @@
             frozen.style.display = 'none';
             frozen.src = '';
             document.getElementById('multiThumbStack').innerHTML = '';
-            document.getElementById('drawerStatusTitle').innerText = 'Ready to Scan';
-            document.getElementById('drawerContent').innerHTML = `
-                <div style="color: var(--text-muted); text-align: center; padding: 2rem 0;">
-                    Align e-waste component within the framing grid and press shutter to scan.
-                </div>`;
+            setDrawerTitle(scanMode === 'multi' ? 'Multi-Angle Scan' : 'Ready to Scan');
+            setDrawerContent(`<div style="color: var(--text-muted); text-align: center; padding: 2rem 0;">${idleMessage()}</div>`);
             updateStatus('ready');
         }
 
         function resetCameraView() {
+            if (scanning) return;
             resetCameraState();
             snapDrawer(false);
         }
 
-        function captureFrameURI() {
+        function setDrawerTitle(text) {
+            document.getElementById('drawerStatusTitle').innerText = text;
+        }
+
+        function setDrawerContent(html) {
+            document.getElementById('drawerContent').innerHTML = html;
+        }
+
+        // Grab the current video frame, scaled down so its long edge is at most maxEdge.
+        function captureFrameURI(maxEdge) {
             const video = document.getElementById('videoFeed');
             const canvas = document.getElementById('captureCanvas');
-            canvas.width = video.videoWidth || 640;
-            canvas.height = video.videoHeight || 480;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const width = video.videoWidth || 640;
+            const height = video.videoHeight || 480;
+            const scale = Math.min(1, maxEdge / Math.max(width, height));
+            canvas.width = Math.round(width * scale);
+            canvas.height = Math.round(height * scale);
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
             return canvas.toDataURL('image/jpeg', 0.85);
         }
 
@@ -922,280 +1103,302 @@
             text.innerText = state;
         }
 
-        function parseRawModelOutput(data) {
-            if (!data) return {};
-            if (typeof data === 'object' && !data.response && !data.content && !data.message) {
-                return data;
+        // fetch() wrapper that turns server errors into readable messages.
+        async function requestJSON(url, options) {
+            const res = await fetch(url, options);
+            let body = null;
+            try { body = await res.json(); } catch (e) { /* non-JSON error page */ }
+            if (!res.ok) {
+                const detail = body && typeof body.detail === 'string' ? body.detail : `Server error (${res.status}).`;
+                throw new Error(detail);
             }
-            let str = '';
-            if (typeof data === 'string') {
-                str = data;
-            } else if (data.response) {
-                str = typeof data.response === 'string' ? data.response : JSON.stringify(data.response);
-            } else if (data.content) {
-                str = typeof data.content === 'string' ? data.content : JSON.stringify(data.content);
-            } else if (data.message && data.message.content) {
-                str = data.message.content;
-            } else {
-                str = JSON.stringify(data);
-            }
-            try {
-                let cleanStr = str.replace(/```json/gi, '').replace(/```/g, '').trim();
-                const match = cleanStr.match(/\{[\s\S]*\}/);
-                if (match) return JSON.parse(match[0]);
-            } catch (e) {
-                console.warn("JSON parsing fallback:", e);
-            }
-            return {
-                item: "Unknown Circuit Board",
-                raw_text: str
-            };
+            return body;
         }
 
-        function displayAnalysisResults(data, imageURI) {
-            const compName = data.item || data.component_name || data.name || "Unknown Circuit Board";
-            const category = data.category || "General E-Waste";
-            
-            let confidence = 92;
-            if (data.hazard_hotspots && data.hazard_hotspots.length > 0) {
-                const confs = data.hazard_hotspots.map(h => h.confidence || 0.9);
-                confidence = Math.round((confs.reduce((a, b) => a + b, 0) / confs.length) * 100);
+        /* Result Rendering */
+        function hazardBox(text) {
+            const lower = text.toLowerCase();
+            let extraClass = '';
+            let icon = 'fa-exclamation-triangle';
+            if (/lithium|li-ion|battery/.test(lower)) {
+                extraClass = 'lithium';
+                icon = 'fa-bolt';
+            } else if (/mercury|ccfl|fluorescent/.test(lower)) {
+                icon = 'fa-biohazard';
+            } else if (/personal data|wipe/.test(lower)) {
+                icon = 'fa-user-shield';
             }
+            return `
+                <div class="hazard-alert-box ${extraClass}">
+                    <i class="fas ${icon} hazard-icon"></i>
+                    <div class="hazard-text">${esc(text)}</div>
+                </div>`;
+        }
+
+        function listSection(title, icon, items, extraClass = '') {
+            if (items.length === 0) return '';
+            return `
+                <div class="result-section ${extraClass}">
+                    <div class="specs-card-title">${esc(title)}</div>
+                    <ul class="result-list">
+                        ${items.map(i => `<li><i class="fas ${icon}"></i><span>${esc(i)}</span></li>`).join('')}
+                    </ul>
+                </div>`;
+        }
+
+        function infoBox(icon, text) {
+            return `<div class="info-box"><i class="fas ${icon}"></i><div>${esc(text)}</div></div>`;
+        }
+
+        function sourceNote(sources) {
+            const links = asList(sources)
+                .map(s => {
+                    const url = Array.isArray(s) ? safeUrl(s[1]) : null;
+                    return url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(s[0])}</a>` : '';
+                })
+                .filter(Boolean);
+            if (links.length > 0) {
+                return `<div class="result-note"><i class="fas fa-book"></i> Safety guidance sources: ${links.join(' · ')}</div>`;
+            }
+            return `<div class="result-note"><span class="unverified-label"><i class="fas fa-circle-exclamation"></i> Unverified:</span> this safety guidance hasn't been checked against a published source yet.</div>`;
+        }
+
+        function metalsSummary(pm) {
+            const parts = [];
+            if (pm.gold_mg) parts.push(`Gold ${pm.gold_mg} mg`);
+            if (pm.silver_mg) parts.push(`Silver ${pm.silver_mg} mg`);
+            if (pm.copper_g) parts.push(`Copper ${pm.copper_g} g`);
+            if (pm.tantalum_mg) parts.push(`Tantalum ${pm.tantalum_mg} mg`);
+            return parts.join(' · ');
+        }
+
+        function displayAnalysisResults(data) {
+            const compName = data.item || "Unidentified item";
+            const categoryLabel = data.category_label || data.category || '';
             document.getElementById('drawerStatusTitle').innerHTML = `
-                <span>${compName}</span>
-                <span class="confidence-badge"><i class="fas fa-check-circle"></i> ${confidence}% Match</span>
+                <span>${esc(compName)}</span>
+                ${categoryLabel ? `<span class="confidence-badge">${esc(categoryLabel)}</span>` : ''}
             `;
 
-            const hazardsList = (data.hazards || []).map(h => String(h).toLowerCase());
-            const hasLiIon = hazardsList.some(h => h.includes('lithium') || h.includes('battery') || h.includes('li-ion'));
-            const hasMercury = hazardsList.some(h => h.includes('mercury') || h.includes('ccfl') || h.includes('fluorescent'));
-            const isHazardous = hazardsList.length > 0;
-            let hazardHTML = '';
+            let html = '';
+            if (data.double_check_failed) {
+                html += infoBox('fa-circle-info', "The second opinion wasn't available, so this is the first model's result.");
+            }
 
-            if (hasLiIon) {
-                hazardHTML += `
-                    <div class="hazard-alert-box lithium">
-                        <i class="fas fa-bolt hazard-icon"></i>
-                        <div>
-                            <div class="hazard-title" style="color: var(--accent-amber);">High Priority Hazard: Lithium-Ion Battery</div>
-                            <div class="hazard-desc">Risk of fire or thermal runaway if punctured or crushed. Do NOT throw in municipal trash. Deliver to specialized drop-off point.</div>
+            // Curated hazards from the knowledge base, then anything extra the AI noticed.
+            const hazards = asList(data.hazards);
+            if (hazards.length > 0) {
+                html += hazards.map(h => hazardBox(String(h))).join('');
+            } else {
+                html += `
+                    <div class="hazard-alert-box safe">
+                        <i class="fas fa-check-circle hazard-icon"></i>
+                        <div class="hazard-text">No known hazards for this type of item.</div>
+                    </div>`;
+            }
+            html += sourceNote(data.sources);
+            html += listSection('Spotted by the AI in your photo (not verified)', 'fa-eye', asList(data.ai_hazards), 'ai');
+
+            html += listSection('How to dispose of it', 'fa-recycle', asList(data.dispose));
+
+            if (data.label_hint) {
+                html += infoBox('fa-camera', 'For full specs, take a close-up photo of the label.');
+            }
+
+            const specs = data.specs && typeof data.specs === 'object' ? Object.entries(data.specs) : [];
+            if (specs.length > 0) {
+                html += `
+                    <div class="specs-card">
+                        <div class="specs-card-title">Technical Specifications</div>
+                        <div class="specs-grid">
+                            ${specs.map(([key, val]) => `<div class="spec-item"><span class="spec-key">${esc(key)}</span><span class="spec-val">${esc(val)}</span></div>`).join('')}
                         </div>
                     </div>`;
             }
-            if (hasMercury) {
-                hazardHTML += `
-                    <div class="hazard-alert-box">
-                        <i class="fas fa-biohazard hazard-icon"></i>
-                        <div>
-                            <div class="hazard-title">Toxic Hazard: Mercury / CCFL Backlight</div>
-                            <div class="hazard-desc">Contains mercury vapor elements. Must be handled intact without breaking glass tubes.</div>
-                        </div>
-                    </div>`;
-            }
-            if (isHazardous && !hasLiIon && !hasMercury) {
-                hazardHTML += `
-                    <div class="hazard-alert-box">
-                        <i class="fas fa-exclamation-triangle hazard-icon"></i>
-                        <div>
-                            <div class="hazard-title">Hazardous E-Waste Material</div>
-                            <div class="hazard-desc">${data.hazards.join(', ')}</div>
-                        </div>
-                    </div>`;
-            }
 
-            const pm = data.precious_metals || {};
-            const pmParts = [];
-            if (pm.gold_mg) pmParts.push(`Gold: ${pm.gold_mg}mg`);
-            if (pm.copper_g) pmParts.push(`Copper: ${pm.copper_g}g`);
-            if (pm.silver_mg) pmParts.push(`Silver: ${pm.silver_mg}mg`);
-            if (pm.tantalum_mg) pmParts.push(`Tantalum: ${pm.tantalum_mg}mg`);
-            const metalsStr = pmParts.length > 0 ? pmParts.join(', ') : "None Detected";
-
-            // Fixed template string syntax error here
-            let specsHTML = `
-                <div class="spec-item"><span class="spec-key">Category</span><span class="spec-val">${category}</span></div>
-                <div class="spec-item"><span class="spec-key">Precious Metals</span><span class="spec-val">${metalsStr}</span></div>
-            `;
-            if (data.specs && typeof data.specs === 'object') {
-                for (const [key, val] of Object.entries(data.specs)) {
-                    specsHTML += `<div class="spec-item"><span class="spec-key">${key}</span><span class="spec-val">${val}</span></div>`;
+            if (salvageEnabled) {
+                html += listSection('What you can salvage', 'fa-cubes', asList(data.salvage));
+                html += listSection('AI salvage suggestions (not verified)', 'fa-eye', asList(data.ai_salvage), 'ai');
+                const metals = metalsSummary(data.precious_metals || {});
+                if (metals) {
+                    html += `<div class="result-note" style="margin-top: 0;"><i class="fas fa-coins"></i> AI estimate of precious metals: ${esc(metals)}</div>`;
                 }
             }
 
-            // Render knowledge base source citations if available
-            let sourcesHTML = '';
-            if (data.sources && Array.isArray(data.sources) && data.sources.length > 0) {
-                sourcesHTML = `
-                    <div class="specs-card" style="margin-top: 0.75rem;">
-                        <div class="specs-card-title">Verified EPA Safety Citations</div>
-                        ${data.sources.map(s => `<div style="font-size: 0.78rem; margin-bottom: 0.3rem;"><a href="${s[1]}" target="_blank" style="color: var(--accent-blue); text-decoration: underline;">${s[0]}</a></div>`).join('')}
-                    </div>`;
-            }
-
-            const salvageButtonHTML = salvageEnabled ? `
-                <button class="app-btn btn-salvage" onclick="showSalvageModal('${encodeURIComponent(JSON.stringify(data))}')">
-                    <i class="fas fa-cubes"></i> Salvage Materials
-                </button>` : '';
-
-            document.getElementById('drawerContent').innerHTML = `
-                ${hazardHTML}
-                <div class="specs-card">
-                    <div class="specs-card-title">Technical Specifications</div>
-                    <div class="specs-grid">
-                        ${specsHTML}
-                    </div>
-                </div>
-                ${sourcesHTML}
-                <div class="action-button-row ${salvageEnabled ? '' : 'single-btn'}">
+            html += `
+                <div class="action-button-row">
                     <button class="app-btn btn-dispose" onclick="openModal('settingsModal')">
-                        <i class="fas fa-recycle"></i> Dispose Guidance
+                        <i class="fas fa-location-dot"></i> Drop-off Locations
                     </button>
-                    ${salvageButtonHTML}
-                </div>
-            `;
+                    <button class="app-btn btn-salvage" onclick="resetCameraView()">
+                        <i class="fas fa-camera"></i> Scan Another
+                    </button>
+                </div>`;
+
+            setDrawerContent(html);
         }
 
-        async function triggerScan() {
-            const frameURI = captureFrameURI();
-            if (scanMode === 'single') {
-                const frozen = document.getElementById('frozenPreview');
-                frozen.src = frameURI;
-                frozen.style.display = 'block';
-                updateStatus('analyzing');
-                document.getElementById('drawerStatusTitle').innerText = 'Analyzing Component...';
-                document.getElementById('drawerContent').innerHTML = `
-                    <div style="text-align: center; padding: 2.5rem 0;">
-                        <i class="fas fa-circle-notch fa-spin fa-2x" style="color: var(--accent-amber); margin-bottom: 0.85rem;"></i>
-                        <div style="font-weight: 600;">Analyzing circuitry & materials...</div>
-                    </div>`;
-                snapDrawer(true);
-                try {
-                    const formData = new FormData();
-                    formData.append('file', dataURItoBlob(frameURI), 'component.jpg');
-                    const res = await fetch('/api/scan', { method: 'POST', body: formData });
-                    const rawData = await res.json();
-                    let data = parseRawModelOutput(rawData);
-                    if (aiDoubleCheck) {
-                        document.getElementById('drawerStatusTitle').innerText = 'Verifying with Qwen...';
-                        const doubleRes = await fetch('/api/double-check', {
+        function showLoading(message) {
+            setDrawerContent(`
+                <div style="text-align: center; padding: 2.5rem 0;">
+                    <i class="fas fa-circle-notch fa-spin fa-2x" style="color: var(--accent-amber); margin-bottom: 0.85rem;"></i>
+                    <div style="font-weight: 600;">${esc(message)}</div>
+                </div>`);
+        }
+
+        function showScanError(message) {
+            setDrawerTitle('Scan Failed');
+            setDrawerContent(`
+                <div class="hazard-alert-box">
+                    <i class="fas fa-triangle-exclamation hazard-icon"></i>
+                    <div class="hazard-text">${esc(message)}</div>
+                </div>
+                <div class="action-button-row single-btn">
+                    <button class="app-btn btn-dispose" onclick="resetCameraView()">
+                        <i class="fas fa-redo"></i> Try Again
+                    </button>
+                </div>`);
+        }
+
+        async function runAnalysis(endpoint, formData, thumbURI, loadingMessage) {
+            scanning = true;
+            document.getElementById('shutterBtn').classList.add('busy');
+            updateStatus('analyzing');
+            setDrawerTitle('Analyzing Component...');
+            showLoading(loadingMessage);
+            snapDrawer(true);
+
+            let data = null;
+            try {
+                data = await requestJSON(endpoint, { method: 'POST', body: formData });
+                if (aiDoubleCheck) {
+                    setDrawerTitle('Getting a second opinion...');
+                    try {
+                        data = await requestJSON('/api/double-check', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(data)
                         });
-                        const doubleRaw = await doubleRes.json();
-                        data = parseRawModelOutput(doubleRaw);
-                    }
-                    displayAnalysisResults(data, frameURI);
-                    saveToHistory(data, frameURI);
-                } catch (err) {
-                    document.getElementById('drawerContent').innerHTML = `<div style="color: var(--accent-red); padding: 1rem;">Scan error: ${err.message}</div>`;
-                } finally {
-                    updateStatus('ready');
-                }
-            } else {
-                capturedImages.push(frameURI);
-                const thumb = document.createElement('img');
-                thumb.src = frameURI;
-                thumb.className = 'stack-thumb';
-                document.getElementById('multiThumbStack').appendChild(thumb);
-                if (capturedImages.length < 3) {
-                    document.getElementById('drawerStatusTitle').innerText = `Angle Captured (${capturedImages.length}/3)`;
-                    snapDrawer(true);
-                    document.getElementById('drawerContent').innerHTML = `<div style="text-align:center; padding:1.5rem 0;">Rotate component to angle ${capturedImages.length + 1} and press shutter...</div>`;
-                } else {
-                    updateStatus('analyzing');
-                    document.getElementById('drawerStatusTitle').innerText = 'Analyzing Multi-Angle...';
-                    document.getElementById('drawerContent').innerHTML = `
-                        <div style="text-align: center; padding: 2.5rem 0;">
-                            <i class="fas fa-circle-notch fa-spin fa-2x" style="color: var(--accent-amber); margin-bottom: 0.85rem;"></i>
-                            <div style="font-weight: 600;">Processing 3D multi-angle inspection...</div>
-                        </div>`;
-                    snapDrawer(true);
-                    try {
-                        const formData = new FormData();
-                        capturedImages.forEach((uri, idx) => {
-                            formData.append('files', dataURItoBlob(uri), `angle_${idx + 1}.jpg`);
-                        });
-                        const res = await fetch('/api/scan-multi', { method: 'POST', body: formData });
-                        const rawData = await res.json();
-                        let data = parseRawModelOutput(rawData);
-                        if (aiDoubleCheck) {
-                            document.getElementById('drawerStatusTitle').innerText = 'Verifying with Qwen...';
-                            const doubleRes = await fetch('/api/double-check', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(data)
-                            });
-                            const doubleRaw = await doubleRes.json();
-                            data = parseRawModelOutput(doubleRaw);
-                        }
-                        displayAnalysisResults(data, capturedImages[0]);
-                        saveToHistory(data, capturedImages[0]);
                     } catch (err) {
-                        document.getElementById('drawerContent').innerHTML = `<div style="color: var(--accent-red); padding: 1rem;">Multi-angle scan error: ${err.message}</div>`;
-                    } finally {
-                        updateStatus('ready');
+                        console.warn('Second opinion failed:', err);
+                        data = { ...data, double_check_failed: true };
                     }
                 }
+                displayAnalysisResults(data);
+            } catch (err) {
+                const offline = err instanceof TypeError;  // fetch itself failed
+                showScanError(offline ? "Couldn't reach the ReVolt server. Check your connection." : err.message);
+                data = null;
+            } finally {
+                scanning = false;
+                document.getElementById('shutterBtn').classList.remove('busy');
+                updateStatus('ready');
+            }
+            if (data) saveToHistory(data, thumbURI);
+        }
+
+        async function triggerScan() {
+            if (scanning) return;
+            const frameURI = captureFrameURI(UPLOAD_MAX_EDGE);
+            const thumbURI = captureFrameURI(THUMB_MAX_EDGE);
+
+            if (scanMode === 'single') {
+                const frozen = document.getElementById('frozenPreview');
+                frozen.src = frameURI;
+                frozen.style.display = 'block';
+                const formData = new FormData();
+                formData.append('file', dataURItoBlob(frameURI), 'component.jpg');
+                await runAnalysis('/api/scan', formData, thumbURI, 'Analyzing circuitry & materials...');
+                return;
+            }
+
+            if (capturedImages.length >= MULTI_ANGLE_COUNT) resetCameraState();
+            capturedImages.push({ frame: frameURI, thumb: thumbURI });
+            const thumb = document.createElement('img');
+            thumb.src = thumbURI;
+            thumb.className = 'stack-thumb';
+            document.getElementById('multiThumbStack').appendChild(thumb);
+
+            if (capturedImages.length < MULTI_ANGLE_COUNT) {
+                // Leave the drawer closed so the shutter stays reachable for the next angle.
+                setDrawerTitle(`Angle ${capturedImages.length}/${MULTI_ANGLE_COUNT} captured`);
+                setDrawerContent(`<div style="text-align:center; padding:1.5rem 0;">Rotate the item and take angle ${capturedImages.length + 1}.</div>`);
+                return;
+            }
+
+            const formData = new FormData();
+            capturedImages.forEach((img, idx) => {
+                formData.append('files', dataURItoBlob(img.frame), `angle_${idx + 1}.jpg`);
+            });
+            await runAnalysis('/api/scan-multi', formData, capturedImages[0].thumb, 'Processing multi-angle inspection...');
+        }
+
+        /* Scan History (stored on this device only) */
+        function loadHistory() {
+            try {
+                const history = JSON.parse(storageGet('revolt_history') || '[]');
+                return Array.isArray(history) ? history : [];
+            } catch (e) {
+                return [];
             }
         }
 
-        function showSalvageModal(encodedData) {
-            const data = JSON.parse(decodeURIComponent(encodedData));
-            const title = data.item || data.component_name || data.name || 'Component';
-            
-            let msg = `Salvageable Materials Identified in ${title}:\n\n`;
-            if (data.salvage && Array.isArray(data.salvage) && data.salvage.length > 0) {
-                msg += data.salvage.map(s => `• ${s}`).join('\n');
-            } else {
-                const pm = data.precious_metals || {};
-                msg += `• Precious Metals: Gold ${pm.gold_mg || 0}mg, Copper ${pm.copper_g || 0}g, Silver ${pm.silver_mg || 0}mg\n` +
-                       `• High-value Components: IC packages, ferrite inductors, surface-mount capacitors`;
-            }
-            alert(msg);
-        }
-
-        function saveToHistory(data, imageURI) {
-            let history = JSON.parse(localStorage.getItem('revolt_history') || '[]');
-            const title = data.item || data.component_name || data.name || data.category || "E-Waste Scan";
+        function saveToHistory(data, thumbURI) {
+            let history = loadHistory();
             history.unshift({
                 timestamp: new Date().toLocaleString(),
-                title: title,
-                image: imageURI,
+                title: data.item || data.category_label || "E-Waste Scan",
+                image: thumbURI,
                 data: data
             });
-            localStorage.setItem('revolt_history', JSON.stringify(history.slice(0, 25)));
-            renderHistory();
+            history = history.slice(0, HISTORY_LIMIT);
+            // If storage is full (older entries held full-size photos), drop the oldest until it fits.
+            while (history.length > 0 && !storageSet('revolt_history', JSON.stringify(history))) {
+                history.pop();
+            }
         }
 
         function renderHistory() {
-            let history = JSON.parse(localStorage.getItem('revolt_history') || '[]');
+            const history = loadHistory();
             const container = document.getElementById('historyList');
             if (history.length === 0) {
                 container.innerHTML = `<div style="color: var(--text-muted); text-align: center; padding: 2rem 0;">No scan history recorded.</div>`;
                 return;
             }
-            container.innerHTML = history.map(item => `
-                <div class="history-item">
-                    <img src="${item.image}" class="history-thumb" alt="Thumb">
-                    <div>
-                        <strong>${item.title}</strong>
-                        <div style="font-size: 0.75rem; color: var(--text-muted);">${item.timestamp}</div>
-                    </div>
-                </div>
-            `).join('');
+            container.innerHTML = history.map((item, idx) => {
+                const image = typeof item.image === 'string' && item.image.startsWith('data:image/') ? item.image : '';
+                const category = item.data && item.data.category_label ? ` · ${esc(item.data.category_label)}` : '';
+                return `
+                    <div class="history-item" data-index="${idx}">
+                        ${image ? `<img src="${image}" class="history-thumb" alt="Thumb">` : ''}
+                        <div>
+                            <strong>${esc(item.title)}</strong>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">${esc(item.timestamp)}${category}</div>
+                        </div>
+                    </div>`;
+            }).join('');
         }
+
+        // Tapping a history entry reopens its result.
+        document.getElementById('historyList').addEventListener('click', e => {
+            const entry = e.target.closest('[data-index]');
+            if (!entry || scanning) return;
+            const item = loadHistory()[Number(entry.dataset.index)];
+            if (!item || !item.data) return;
+            closeModal('historyModal');
+            displayAnalysisResults(item.data);
+            snapDrawer(true);
+        });
 
         async function fetchAnalytics() {
             try {
-                const res = await fetch('/api/analytics');
-                const data = await res.json();
+                const data = await requestJSON('/api/analytics');
                 document.getElementById('analyticsTotalScans').innerText = data.total_scans || 0;
-                
+
                 const catContainer = document.getElementById('analyticsCategoriesList');
                 if (data.category_breakdown && Object.keys(data.category_breakdown).length > 0) {
                     catContainer.innerHTML = Object.entries(data.category_breakdown)
-                        .map(([cat, count]) => `<div style="display:flex; justify-content:space-between; padding: 0.4rem 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.85rem;"><span>${cat}</span><strong style="color:var(--accent-green);">${count}</strong></div>`)
+                        .map(([cat, count]) => `<div style="display:flex; justify-content:space-between; padding: 0.4rem 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.85rem;"><span>${esc(cat)}</span><strong style="color:var(--accent-green);">${esc(count)}</strong></div>`)
                         .join('');
                 } else {
                     catContainer.innerHTML = `<div style="color: var(--text-muted); font-size: 0.85rem;">No category data recorded yet.</div>`;
@@ -1205,8 +1408,8 @@
                 if (data.recent_scans && data.recent_scans.length > 0) {
                     recentContainer.innerHTML = data.recent_scans.map(s => `
                         <div style="background: rgba(0,0,0,0.3); padding: 0.6rem; border-radius: 10px; margin-bottom: 0.5rem; font-size: 0.8rem;">
-                            <strong style="color:#fff;">${s.item}</strong> (${s.category})
-                            <div style="color: var(--text-muted); font-size: 0.72rem; margin-top: 2px;">Mode: ${s.mode} | Hazards: ${s.hazards} | ${s.timestamp}</div>
+                            <strong style="color:#fff;">${esc(s.item)}</strong> (${esc(s.category)})
+                            <div style="color: var(--text-muted); font-size: 0.72rem; margin-top: 2px;">Mode: ${esc(s.mode)} | Hazards: ${esc(s.hazards)} | ${esc(s.timestamp)}</div>
                         </div>
                     `).join('');
                 } else {
@@ -1219,19 +1422,19 @@
 
         function clearLocalHistory() {
             if (confirm("Clear all locally saved scan history?")) {
-                localStorage.removeItem('revolt_history');
+                try { localStorage.removeItem('revolt_history'); } catch (e) { /* storage blocked */ }
                 renderHistory();
             }
         }
 
         function toggleSalvageMode(enabled) {
             salvageEnabled = enabled;
-            localStorage.setItem('revolt_salvage_enabled', enabled);
+            storageSet('revolt_salvage_enabled', enabled);
         }
 
         function toggleDoubleCheck(enabled) {
             aiDoubleCheck = enabled;
-            localStorage.setItem('revolt_double_check', enabled);
+            storageSet('revolt_double_check', enabled);
         }
 
         function openModal(id) {
