@@ -107,3 +107,13 @@ def test_index_and_vendored_icons_are_served(client):
     assert "ReVolt" in client.get("/").text
     assert client.get("/static/vendor/fontawesome/css/solid.min.css").status_code == 200
     assert client.get("/static/vendor/fontawesome/webfonts/fa-solid-900.woff2").status_code == 200
+
+
+def test_only_listed_image_types_are_accepted(client, model):
+    assert scan(client, {"file": ("photo.png", JPEG, "image/png")}).status_code == 200
+    assert scan(client, {"file": ("photo.heic", JPEG, "image/heic")}).status_code == 415
+
+
+def test_static_files_work_from_any_working_directory(client, monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    assert "ReVolt" in client.get("/").text

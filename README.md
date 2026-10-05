@@ -76,10 +76,10 @@ If the data folder isn't writable, ReVolt still scans normally but logs a warnin
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
-| `REVOLT_MODEL` | `gemma3:12b` | Vision model used for scans |
-| `REVOLT_MODEL_2` | `qwen2.5:14b-instruct-q4_K_M` | Model for the optional "AI Second Opinion" setting |
-| `REVOLT_DB_PATH` | `revolt.db` | SQLite file for server usage statistics |
+| `OLLAMA_HOST` (or `OLLAMA_BASE_URL`) | `http://localhost:11434` | Ollama server URL |
+| `REVOLT_MODEL` (or `VISION_MODEL`) | `gemma3:12b` | Vision model used for scans |
+| `REVOLT_MODEL_2` (or `SECOND_MODEL`) | `qwen2.5vl:7b` | Model for the optional "AI Second Opinion" setting |
+| `REVOLT_DB_PATH` | `revolt.db` next to `main.py` | SQLite file for server usage statistics |
 | `REVOLT_TIMEOUT` | `120` | Seconds to wait for the model (a cold model load can take ~1 minute) |
 | `REVOLT_MAX_CONCURRENT_SCANS` | `2` | Scans allowed to use the model at once; others wait their turn |
 

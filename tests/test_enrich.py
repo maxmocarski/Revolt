@@ -68,3 +68,25 @@ def test_messy_model_output_is_cleaned():
 def test_non_object_model_output_is_rejected(raw):
     with pytest.raises(ValueError):
         main.enrich_analysis(raw)
+
+
+def test_ai_reported_lead_is_dropped_but_similar_words_are_kept():
+    result = main.enrich_analysis({
+        "item": "board", "category": "motherboard",
+        "hazards": ["Contains lead solder", "LEAD in the joints", "Loose leads on the capacitors", "Bulging capacitor"],
+    })
+    assert result["ai_hazards"] == ["Loose leads on the capacitors", "Bulging capacitor"]
+
+
+def test_markdown_fenced_model_json_is_parsed():
+    assert main._parse_model_json('```json\n{"item": "x"}\n```') == {"item": "x"}
+    assert main._parse_model_json('{"item": "y"}') == {"item": "y"}
+
+
+def test_both_setting_names_are_accepted(monkeypatch):
+    monkeypatch.delenv("OLLAMA_HOST", raising=False)
+    monkeypatch.setenv("OLLAMA_BASE_URL", "http://gpu-box:11434")
+    assert main._env("OLLAMA_HOST", "OLLAMA_BASE_URL", default="d") == "http://gpu-box:11434"
+    monkeypatch.setenv("OLLAMA_HOST", "http://preferred:11434")
+    assert main._env("OLLAMA_HOST", "OLLAMA_BASE_URL", default="d") == "http://preferred:11434"
+    assert main._env("NOT_SET_ANYWHERE", default="fallback") == "fallback"
