@@ -1,5 +1,6 @@
 import os
 import re
+import asyncio
 import json
 import base64
 import logging
@@ -28,6 +29,9 @@ DB_PATH = os.getenv("REVOLT_DB_PATH", "revolt.db")
 # A cold model load alone can take close to a minute.
 OLLAMA_TIMEOUT = float(os.getenv("REVOLT_TIMEOUT", "120"))
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
+# A single GPU handles one or two scans at a time well; more just slows every scan down.
+MAX_CONCURRENT_SCANS = max(1, int(os.getenv("REVOLT_MAX_CONCURRENT_SCANS", "2")))
+_model_slots = asyncio.Semaphore(MAX_CONCURRENT_SCANS)
 MAX_IMAGES = 3
 
 CATEGORIES = list(knowledge.INFO)
@@ -79,20 +83,27 @@ class ModelError(Exception):
 
 # SQLite Database Initialization for Server Analytics
 def init_db():
-    db_dir = os.path.dirname(DB_PATH)
-    if db_dir and not os.path.exists(db_dir):
-        os.makedirs(db_dir, exist_ok=True)
-    with closing(sqlite3.connect(DB_PATH)) as conn, conn:
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS scans (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                item TEXT,
-                category TEXT,
-                scan_mode TEXT,
-                hazards_count INTEGER
-            )
-        ''')
+    try:
+        db_dir = os.path.dirname(DB_PATH)
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+        with closing(sqlite3.connect(DB_PATH)) as conn, conn:
+            _create_tables(conn)
+    except (OSError, sqlite3.Error):
+        # Scanning still works without analytics, e.g. if the data folder isn't writable.
+        log.exception("Could not open the analytics database at %s; usage statistics are disabled", DB_PATH)
+
+def _create_tables(conn):
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS scans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            item TEXT,
+            category TEXT,
+            scan_mode TEXT,
+            hazards_count INTEGER
+        )
+    ''')
 
 init_db()
 
@@ -201,8 +212,9 @@ def enrich_analysis(raw: Any) -> Dict[str, Any]:
         "item": item,
         "category": key,
         "category_label": knowledge.LABELS[key],
-        "hazards": list(info["hazards"]),
-        "ai_hazards": _without(_str_list(raw.get("hazards")), info["hazards"]),
+        "typical_weight_kg": knowledge.TYPICAL_WEIGHT_KG[key],
+        "hazards": [dict(h) for h in info["hazards"]],   # [{"level": ..., "text": ...}]
+        "ai_hazards": _without(_str_list(raw.get("hazards")), [h["text"] for h in info["hazards"]]),
         "dispose": list(info["dispose"]),
         "salvage": list(info["salvage"]),
         "ai_salvage": _without(_str_list(raw.get("salvage")), info["salvage"]),
@@ -220,7 +232,7 @@ async def ollama_json(model: str, prompt_text: str, images_b64: Optional[List[st
     if images_b64:
         payload["images"] = images_b64
     try:
-        async with httpx.AsyncClient(timeout=OLLAMA_TIMEOUT) as client:
+        async with _model_slots, httpx.AsyncClient(timeout=OLLAMA_TIMEOUT) as client:
             response = await client.post(OLLAMA_URL, json=payload)
             response.raise_for_status()
             return json.loads(response.json().get("response") or "{}")

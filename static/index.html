@@ -6,7 +6,9 @@
     <title>ReVolt — E-Waste Vision AI</title>
     <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
     <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Font Awesome 6.4.0 (solid icons only), served by the app itself: no third-party requests -->
+    <link rel="stylesheet" href="/static/vendor/fontawesome/css/fontawesome.min.css">
+    <link rel="stylesheet" href="/static/vendor/fontawesome/css/solid.min.css">
     <style>
         /* ===== Design tokens ===== */
         :root {
@@ -82,6 +84,7 @@
             clip: rect(0 0 0 0);
             white-space: nowrap;
         }
+        [hidden] { display: none !important; }   /* keep the hidden attribute working on flex/grid elements */
         .muted { color: var(--text-muted); }
         .accent { color: var(--accent-green); }
         .empty-state {
@@ -285,6 +288,34 @@
             background: rgba(48, 209, 88, 0.15);
             color: var(--accent-green);
         }
+        .landing-stats {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-2);
+        }
+        .landing-stat {
+            background: var(--surface);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-3) var(--space-2);
+        }
+        .landing-stat-value {
+            display: block;
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: var(--accent-green);
+            line-height: 1.1;
+        }
+        .landing-stat-label {
+            display: block;
+            margin-top: var(--space-1);
+            font-size: var(--text-xs);
+            color: var(--text-muted);
+            line-height: 1.3;
+        }
+        .landing-stat.danger .landing-stat-value { color: var(--accent-red); }
+        .landing-stats-note { margin-top: calc(-1 * var(--space-3)); }
         #startScanBtn { box-shadow: 0 8px 30px rgba(48, 209, 88, 0.35); }
         .landing-links {
             display: flex;
@@ -313,6 +344,7 @@
             .landing-steps { gap: 0.4rem; }
             .landing-steps li { padding: var(--space-2) 0.8rem; font-size: var(--text-sm); gap: 0.7rem; }
             .landing-steps i { width: 1.8rem; height: 1.8rem; font-size: 0.8rem; }
+            .landing-stat-value { font-size: 1.35rem; }
             #startScanBtn { padding: 0.85rem; }
             .landing-links { margin-top: -0.4rem; }
         }
@@ -1043,7 +1075,15 @@
             <img class="landing-logo" src="/static/logo.svg" alt="ReVolt" style="display:none;" onload="this.style.display='block'; this.nextElementSibling.remove();">
             <div class="landing-wordmark" aria-hidden="true">ReVolt</div>
             <p class="landing-tagline">Point your camera at old electronics to find hazards, what's worth saving, and how to dispose of it safely.</p>
-            <ol class="landing-steps">
+            <div id="landingStatsBlock" hidden>
+                <div class="landing-stats">
+                    <div class="landing-stat"><span class="landing-stat-value" id="statScans">0</span><span class="landing-stat-label">items scanned</span></div>
+                    <div class="landing-stat danger"><span class="landing-stat-value" id="statHazardous">0</span><span class="landing-stat-label">hazardous items found</span></div>
+                    <div class="landing-stat"><span class="landing-stat-value" id="statKg">0</span><span class="landing-stat-label">kg of e-waste (est.)</span></div>
+                </div>
+            </div>
+            <p id="landingStatsNote" class="note landing-stats-note" hidden>Your totals on this device. Weight is a rough estimate based on typical items.</p>
+            <ol class="landing-steps" id="landingSteps">
                 <li><i class="fas fa-camera" aria-hidden="true"></i><span>Aim at a device or part, like a battery, phone, or RAM stick.</span></li>
                 <li><i class="fas fa-triangle-exclamation" aria-hidden="true"></i><span>ReVolt identifies it and flags hazards such as lithium batteries.</span></li>
                 <li><i class="fas fa-recycle" aria-hidden="true"></i><span>Get safe disposal steps and nearby drop-off locations.</span></li>
@@ -1236,8 +1276,8 @@
                 <i class="fas fa-chevron-right" aria-hidden="true"></i>
             </button>
             <div class="modal-section" style="margin: var(--space-3) 0 0;">
-                <button class="btn btn-danger" onclick="clearLocalHistory()">Clear Scan History</button>
-                <div id="clearHistoryHint" class="settings-hint">History is saved only on this device.</div>
+                <button class="btn btn-danger" onclick="clearLocalHistory()">Clear History &amp; Stats</button>
+                <div id="clearHistoryHint" class="settings-hint">History and home-screen stats are saved only on this device.</div>
             </div>
         </div>
     </div>
@@ -1329,6 +1369,7 @@
 
         function initApp() {
             initDrawerGesture();
+            renderLandingStats();
         }
 
         /* ===== Landing screen & camera ===== */
@@ -1346,6 +1387,7 @@
             resetCameraState();
             snapDrawer(false);
             stopCamera();
+            renderLandingStats();
             document.getElementById('landingScreen').classList.remove('hidden');
             document.getElementById('startScanBtn').focus({ preventScroll: true });
         }
@@ -1630,6 +1672,8 @@
         }
 
         /* ===== Result rendering ===== */
+        // Curated hazards arrive as {level, text}. AI-spotted hazards and results saved before levels
+        // existed are plain strings, so their level is guessed from keywords:
         // danger: could hurt someone (fire, toxic); privacy: personal data; caution: handling advice.
         function hazardLevel(text) {
             const t = text.toLowerCase();
@@ -1644,6 +1688,12 @@
             privacy: { label: 'Privacy', icon: 'fa-user-shield' },
         };
 
+        function normalizeHazard(h) {
+            if (h && typeof h === 'object' && LEVEL_INFO[h.level]) return { level: h.level, text: String(h.text ?? '') };
+            const text = String(h);
+            return { level: hazardLevel(text), text };
+        }
+
         function hazardIcon(text, level) {
             if (level === 'danger' && /mercury|toxic/.test(text.toLowerCase())) return 'fa-biohazard';
             return LEVEL_INFO[level].icon;
@@ -1651,9 +1701,9 @@
 
         // The one-glance answer: how careful to be, why, and what to do first.
         function verdictFor(data) {
-            const hazards = asList(data.hazards).map(String);
+            const hazards = asList(data.hazards).map(normalizeHazard);
             const aiHazards = asList(data.ai_hazards).map(String);
-            const withLevel = level => hazards.filter(h => hazardLevel(h) === level);
+            const withLevel = level => hazards.filter(h => h.level === level).map(h => h.text);
             const danger = withLevel('danger');
             const caution = withLevel('caution');
             const privacy = withLevel('privacy');
@@ -1694,11 +1744,9 @@
         }
 
         function safetyCard(data) {
-            const hazards = asList(data.hazards).map(String);
-            const items = hazards.map(h => {
-                const level = hazardLevel(h);
-                return `<li class="${level}">${icon(hazardIcon(h, level))}<span><span class="level-tag">${LEVEL_INFO[level].label}</span>${esc(h)}</span></li>`;
-            }).join('');
+            const items = asList(data.hazards).map(normalizeHazard).map(({ level, text }) =>
+                `<li class="${level}">${icon(hazardIcon(text, level))}<span><span class="level-tag">${LEVEL_INFO[level].label}</span>${esc(text)}</span></li>`
+            ).join('');
             return `
                 <div class="card">
                     <div class="card-title">Safety</div>
@@ -1904,7 +1952,10 @@
                 document.getElementById('shutterBtn').classList.remove('busy');
                 updateStatus(cameraStream ? 'ready' : 'offline');
             }
-            if (data) saveToHistory(data, thumbURI);
+            if (data) {
+                saveToHistory(data, thumbURI);
+                recordStats(data);
+            }
         }
 
         async function triggerScan() {
@@ -1948,6 +1999,47 @@
                 formData.append('files', dataURItoBlob(img.frame), `angle_${idx + 1}.jpg`);
             });
             await runAnalysis('/api/scan-multi', formData, capturedImages[0].thumb, 'Processing multi-angle inspection…');
+        }
+
+        /* ===== Home-screen stats (stored on this device only; not capped like history) ===== */
+        function loadStats() {
+            try {
+                const stats = JSON.parse(storageGet('revolt_stats') || '{}');
+                return {
+                    scans: Number(stats.scans) || 0,
+                    hazardous: Number(stats.hazardous) || 0,
+                    kg: Number(stats.kg) || 0,
+                };
+            } catch (e) {
+                return { scans: 0, hazardous: 0, kg: 0 };
+            }
+        }
+
+        function recordStats(data) {
+            const stats = loadStats();
+            stats.scans += 1;
+            if (verdictFor(data).level === 'danger') stats.hazardous += 1;
+            stats.kg += Number(data.typical_weight_kg) || 0;
+            storageSet('revolt_stats', JSON.stringify(stats));
+            renderLandingStats();
+        }
+
+        function formatKg(kg) {
+            if (kg === 0) return '0';
+            if (kg < 10) return kg.toFixed(1);
+            return String(Math.round(kg));
+        }
+
+        // First-time users see the how-it-works steps; returning users see their totals instead.
+        function renderLandingStats() {
+            const stats = loadStats();
+            const hasStats = stats.scans > 0;
+            document.getElementById('landingStatsBlock').hidden = !hasStats;
+            document.getElementById('landingStatsNote').hidden = !hasStats;
+            document.getElementById('landingSteps').hidden = hasStats;
+            document.getElementById('statScans').textContent = stats.scans;
+            document.getElementById('statHazardous').textContent = stats.hazardous;
+            document.getElementById('statKg').textContent = formatKg(stats.kg);
         }
 
         /* ===== Scan history (stored on this device only) ===== */
@@ -2046,10 +2138,14 @@
 
         /* ===== Settings ===== */
         function clearLocalHistory() {
-            if (confirm("Clear all locally saved scan history?")) {
-                try { localStorage.removeItem('revolt_history'); } catch (e) { /* storage blocked */ }
+            if (confirm("Clear your scan history and home-screen stats on this device?")) {
+                try {
+                    localStorage.removeItem('revolt_history');
+                    localStorage.removeItem('revolt_stats');
+                } catch (e) { /* storage blocked */ }
                 renderHistory();
-                document.getElementById('clearHistoryHint').innerText = 'Scan history cleared.';
+                renderLandingStats();
+                document.getElementById('clearHistoryHint').innerText = 'History and stats cleared.';
             }
         }
 
