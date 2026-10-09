@@ -2213,16 +2213,19 @@
         //---------------------------------------
         // Arizona easter eggggg
         //---------------------------------------
-        let logoClickCount = 0;
-        document.addEventListener('click', e => {
-            if (e.target.closest('#brandBadge, #landingLogo, .brand-badge')) {
-                logoClickCount++;
-                if (logoClickCount === 5) {
-                    window.location.href = '/static/arizona.html';
-                }
-            }
-        });
+        let zonerClickCount = 0;
 
+document.addEventListener('click', (e) => {
+    const zonerImg = e.target.closest('img[src*="zoner.png"]');
+    
+    if (zonerImg) {
+        zonerClickCount++;
+        if (zonerClickCount === 5) {
+            window.location.href = '/static/arizona.html';
+        }
+    }
+});
+                    
         window.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
