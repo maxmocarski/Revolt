@@ -369,6 +369,36 @@ def get_analytics():
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
+# ---------------------------------------------------------
+# Arizona Iced Tea Secret Stats
+# ---------------------------------------------------------
+def get_arizona_stats():
+    """Query counts and calculate stats for Arizona Iced Tea cans scanned."""
+    try:
+        with closing(sqlite3.connect(DB_PATH)) as conn:
+            count = conn.execute(
+                "SELECT COUNT(*) FROM scans WHERE LOWER(item) LIKE '%arizona%'"
+            ).fetchone()[0]
+    except sqlite3.Error:
+        log.exception("Arizona stats query error")
+        count = 0
+
+    FL_OZ_PER_CAN = 23
+    total_fl_oz = count * FL_OZ_PER_CAN
+    gallons = round(total_fl_oz / 128, 2)
+    estimated_sugar_g = count * 72
+
+    return {
+        "cans_scanned": count,
+        "total_fl_oz": total_fl_oz,
+        "gallons": gallons,
+        "estimated_sugar_g": estimated_sugar_g,
+    }
+
+@app.get("/api/secret/arizona")
+def arizona_stats():
+    return get_arizona_stats()
+
 @app.get("/")
 async def read_index():
     return FileResponse(STATIC_DIR / "index.html")
