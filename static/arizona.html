@@ -3,103 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌵 Secret Arizona Tracker</title>
+    <title>ReVolt — Secret Zoner Analytics</title>
+    <link rel="stylesheet" href="/static/style.css">
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #0f172a;
-            color: #f8fafc;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 1rem;
-        }
-        .card {
-            background: #1e293b;
-            border: 2px solid #10b981;
-            border-radius: 16px;
-            padding: 2rem;
-            max-width: 420px;
-            width: 100%;
-            text-align: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        }
-        h1 { color: #34d399; margin-bottom: 0.5rem; }
-        .price-tag {
-            display: inline-block;
-            background: #ef4444;
-            color: white;
-            font-weight: bold;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            margin-bottom: 1.5rem;
-        }
-        .stat-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-top: 1.5rem;
-        }
-        .stat-box {
-            background: #0f172a;
-            padding: 1rem;
-            border-radius: 12px;
-            border: 1px solid #334155;
-        }
-        .stat-val {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #38bdf8;
-        }
-        .stat-label {
-            font-size: 0.85rem;
-            color: #94a3b8;
-            margin-top: 0.25rem;
-        }
+        body { font-family: sans-serif; background: #0f172a; color: #f8fafc; padding: 2rem; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+        .stat-card { background: #1e293b; border-radius: 12px; padding: 1.25rem; border: 1px solid #334155; text-align: center; }
+        .stat-value { font-size: 2rem; font-weight: 800; color: #22c55e; margin-top: 0.5rem; }
+        .back-btn { display: inline-block; margin-bottom: 1rem; color: #38bdf8; text-decoration: none; font-weight: 600; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>🌵 Arizona Iced Tea Vault</h1>
-        <div class="price-tag">STILL 99¢</div>
-        
-        <div class="stat-grid">
-            <div class="stat-box">
-                <div class="stat-val" id="cans">0</div>
-                <div class="stat-label">Cans Scanned</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-val" id="oz">0</div>
-                <div class="stat-label">Fluid Ounces</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-val" id="gallons">0</div>
-                <div class="stat-label">Gallons Drank</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-val" id="sugar">0g</div>
-                <div class="stat-label">Est. Sugar</div>
-            </div>
+    <a href="/" class="back-btn">&larr; Back to ReVolt</a>
+    <h1>🌵 Arizona Tea Metrics (Secret Zoner Dashboard)</h1>
+    <p>Live metrics compiled directly from <code>revolt.db</code> logs.</p>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div>Cans Scanned</div>
+            <div id="cansScanned" class="stat-value">0</div>
+        </div>
+        <div class="stat-card">
+            <div>Total Volume</div>
+            <div id="totalVolume" class="stat-value">0 fl oz</div>
+        </div>
+        <div class="stat-card">
+            <div>Total Gallons</div>
+            <div id="totalGallons" class="stat-value">0 gal</div>
+        </div>
+        <div class="stat-card">
+            <div>Est. Sugar Intake</div>
+            <div id="sugarIntake" class="stat-value">0 g</div>
         </div>
     </div>
 
     <script>
-        async function fetchStats() {
+        async function fetchZonerStats() {
             try {
                 const res = await fetch('/api/secret/arizona');
+                if (!res.ok) return;
                 const data = await res.json();
-                document.getElementById('cans').innerText = data.cans_scanned;
-                document.getElementById('oz').innerText = data.total_fl_oz + ' oz';
-                document.getElementById('gallons').innerText = data.gallons + ' gal';
-                document.getElementById('sugar').innerText = data.estimated_sugar_g + 'g';
-            } catch (e) {
-                console.error('Failed to load stats', e);
+                
+                document.getElementById('cansScanned').textContent = data.cans_scanned || 0;
+                document.getElementById('totalVolume').textContent = `${data.total_fl_oz || 0} fl oz`;
+                
+                const gallons = ((data.total_fl_oz || 0) / 128).toFixed(2);
+                document.getElementById('totalGallons').textContent = `${gallons} gal`;
+                
+                document.getElementById('sugarIntake').textContent = `${data.estimated_sugar_g || 0} g`;
+            } catch (err) {
+                console.error('Failed to load stats:', err);
             }
         }
-        fetchStats();
+        
+        window.addEventListener('DOMContentLoaded', fetchZonerStats);
     </script>
 </body>
 </html>
