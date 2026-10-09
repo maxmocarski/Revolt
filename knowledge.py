@@ -34,6 +34,7 @@ LABELS = {
     "cable_or_charger": "Cable or charger",
     "printer": "Printer",
     "display": "Monitor / display",
+    "light_bulb": "Fluorescent / mercury light bulb",
     "other": "Other e-waste",
 }
 
@@ -49,8 +50,17 @@ TYPICAL_WEIGHT_KG = {
     "cable_or_charger": 0.2,
     "printer": 6.0,
     "display": 5.0,
+    "light_bulb": 0.15,
     "other": 0.5,
 }
+
+_BULB_MERCURY = danger(
+    "Compact Fluorescent Lamps (CFLs) and fluorescent tubes contain may mercury vapor. "
+    "Do not break or crush. If broken, clear the room and air it out for at least 10–15 minutes before cleanup."
+
+  _BULB_SOURCES = [
+    ("EPA: CFLs and Mercury", "https://www.epa.gov/cfl/cfls-and-mercury"),
+    ("EPA: Cleaning Up a Broken CFL", "https://www.epa.gov/cfl/cleaning-broken-cfl"),
 
 BATTERY_WARNING = danger("Contains a lithium-ion battery: fire risk if punctured or crushed.")
 
@@ -73,7 +83,7 @@ INFO = {
         "dispose": _RECYCLE, "sources": None},
     "ram": {
         "hazards": [], "salvage": ["The whole module, if it fits your other machines"],
-        "dispose": ["Reuse it if it still works.", *_RECYCLE], "sources": None},
+        "dispose": ["Generaly hard to break.", "Reuse it if it still works.", *_RECYCLE], "sources": None},
     "laptop": {
         "hazards": [BATTERY_WARNING, _MERCURY],
         "salvage": ["RAM", "SSD/HDD (wipe data first)", "Battery", "Screen", "Charger"],
@@ -105,6 +115,12 @@ INFO = {
         "hazards": [_MERCURY], "salvage": ["Power supply", "Stand", "Cables"],
         "dispose": ["Keep it intact and take it to an e-waste recycler.", "Do not put it in the trash."],
         "sources": _LCD_SOURCES},
+    "light_bulb": {
+        "hazards": [_BULB_MERCURY, caution("LED bulbs generally do not contain mercury, but fluorescent tubes and CFLs always do.")],
+        "salvage": [],
+        "dispose": ["Do not put fluorescent bulbs in regular household trash.", "Recycle at specialized household hazardous waste sites or retail drop-offs.", "If intact, make sure not to break." ],
+        "sources": _BULB_SOURCES
+    },
     "other": {
         "hazards": [caution("Unknown item: check for batteries and do not crush or puncture it.")],
         "salvage": [], "dispose": _RECYCLE, "sources": None},
