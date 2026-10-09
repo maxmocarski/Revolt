@@ -31,10 +31,6 @@
             <div>Total Gallons</div>
             <div id="totalGallons" class="stat-value">0 gal</div>
         </div>
-        <div class="stat-card">
-            <div>Est. Sugar Intake</div>
-            <div id="sugarIntake" class="stat-value">0 g</div>
-        </div>
     </div>
 
     <script>
@@ -50,7 +46,7 @@
                 const gallons = ((data.total_fl_oz || 0) / 128).toFixed(2);
                 document.getElementById('totalGallons').textContent = `${gallons} gal`;
                 
-                document.getElementById('sugarIntake').textContent = `${data.estimated_sugar_g || 0} g`;
+                ### document.getElementById('sugarIntake').textContent = `${data.estimated_sugar_g || 0} g`;
             } catch (err) {
                 console.error('Failed to load stats:', err);
             }
