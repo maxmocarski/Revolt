@@ -34,7 +34,15 @@ def _env(*names: str, default: str) -> str:
             return value
     return default
 
+#-------------------APP VERSION---------------------------------
+APP_VERSION = "v1.2.0"
 
+@app.get("/api/version")
+def get_version():
+    return {"version": APP_VERSION}
+
+#---------------------------------------------------------------
+    
 # Configuration via Environment Variables
 OLLAMA_HOST = _env("OLLAMA_HOST", "OLLAMA_BASE_URL", default="http://localhost:11434").rstrip("/")
 OLLAMA_URL = f"{OLLAMA_HOST}/api/generate"
