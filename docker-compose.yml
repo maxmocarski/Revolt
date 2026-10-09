@@ -55,15 +55,18 @@ services:
     container_name: revolt
     restart: unless-stopped
     ports:
-      # 127.0.0.1 = only this server (Tailscale serve reaches it); host 8502 -> container 8501
-      - "127.0.0.1:8502:8501"
+      # 127.0.0.1 = only this server (Tailscale serve reaches it); host 8502 -> container 8502
+      - "127.0.0.1:8502:8502"
     environment:
       - OLLAMA_HOST=http://ollama:11434
       - REVOLT_MODEL=gemma3:12b
       - REVOLT_MODEL_2=qwen2.5vl:7b
       - REVOLT_DB_PATH=/data/revolt.db
+      # How many scans may use the model at once; extra scans wait their turn.
+      - REVOLT_MAX_CONCURRENT_SCANS=2
     volumes:
-      # local folder on this AI server -- plenty of room, a scan history db stays tiny
+      # local folder on this AI server -- plenty of room, a scan history db stays tiny.
+      # The container runs as UID 10001, so make it writable once: sudo chown -R 10001:10001 /srv/revolt-data
       - /srv/revolt-data:/data
     depends_on:
       - ollama

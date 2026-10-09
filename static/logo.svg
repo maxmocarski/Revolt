@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 272 96">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3ee06b"/>
+      <stop offset="1" stop-color="#1a9c43"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(4 8) scale(1.25)">
+    <rect width="64" height="64" rx="15" fill="url(#bg)"/>
+    <path d="M37 7 L15 36 H29 L25 57 L49 25 H35 Z" fill="#ffffff" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+  <text x="104" y="66" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+        font-size="56" font-weight="800" letter-spacing="-1.5">
+    <tspan fill="#ffffff">Re</tspan><tspan fill="#30d158">Volt</tspan>
+  </text>
+</svg>

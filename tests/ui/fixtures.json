@@ -1,0 +1,148 @@
+{
+ "laptop": {
+  "item": "Dell Latitude laptop",
+  "category": "laptop",
+  "category_label": "Laptop",
+  "typical_weight_kg": 2.0,
+  "hazards": [
+   {
+    "level": "danger",
+    "text": "Contains a lithium-ion battery: fire risk if punctured or crushed."
+   },
+   {
+    "level": "danger",
+    "text": "Screens made before about 2009 use fluorescent backlights that contain mercury. Do not break or crush the screen."
+   }
+  ],
+  "ai_hazards": [
+   "Battery looks swollen near hinge"
+  ],
+  "dispose": [
+   "Remove and wipe the drive first.",
+   "Take the battery out if you can.",
+   "Do not put it in household trash.",
+   "Take it to an e-waste recycler or a retailer take-back program."
+  ],
+  "salvage": [
+   "RAM",
+   "SSD/HDD (wipe data first)",
+   "Battery",
+   "Screen",
+   "Charger"
+  ],
+  "ai_salvage": [
+   "Webcam"
+  ],
+  "sources": [],
+  "specs": {},
+  "ai_specs": {
+   "Form Factor": "Folding laptop",
+   "Screen": "14 inch"
+  },
+  "text_lines": [],
+  "label_hint": false,
+  "precious_metals": {
+   "gold_mg": 150.0,
+   "copper_g": 20.0
+  },
+  "hazard_hotspots": []
+ },
+ "drive": {
+  "item": "WD Blue 1TB drive (Dell's)",
+  "category": "hard_drive",
+  "category_label": "Hard drive / SSD",
+  "typical_weight_kg": 0.4,
+  "hazards": [
+   {
+    "level": "privacy",
+    "text": "Holds personal data: wipe or physically destroy it before recycling."
+   }
+  ],
+  "ai_hazards": [],
+  "dispose": [
+   "Wipe or destroy the data first.",
+   "Do not put it in household trash.",
+   "Take it to an e-waste recycler or a retailer take-back program."
+  ],
+  "salvage": [
+   "The whole drive, if it works (wipe it first)",
+   "Magnets from spinning disks"
+  ],
+  "ai_salvage": [],
+  "sources": [],
+  "specs": {
+   "Type": "Hard disk (HDD)",
+   "Capacity": "1 TB",
+   "Speed": "7200 RPM",
+   "Interface": "SATA",
+   "Size": "3.5\""
+  },
+  "ai_specs": {},
+  "text_lines": [
+   "WD 1TB 7200 RPM SATA 3.5 IN"
+  ],
+  "label_hint": false,
+  "precious_metals": {},
+  "hazard_hotspots": []
+ },
+ "ram": {
+  "item": "Kingston RAM stick",
+  "category": "ram",
+  "category_label": "RAM (memory)",
+  "typical_weight_kg": 0.03,
+  "hazards": [],
+  "ai_hazards": [],
+  "dispose": [
+   "Reuse it if it still works.",
+   "Do not put it in household trash.",
+   "Take it to an e-waste recycler or a retailer take-back program."
+  ],
+  "salvage": [
+   "The whole module, if it fits your other machines"
+  ],
+  "ai_salvage": [],
+  "sources": [],
+  "specs": {
+   "Type": "DDR4",
+   "Capacity": "8 GB"
+  },
+  "ai_specs": {},
+  "text_lines": [
+   "DDR4 8GB"
+  ],
+  "label_hint": true,
+  "precious_metals": {},
+  "hazard_hotspots": []
+ },
+ "printer": {
+  "item": "HP inkjet printer",
+  "category": "printer",
+  "category_label": "Printer",
+  "typical_weight_kg": 6.0,
+  "hazards": [
+   {
+    "level": "caution",
+    "text": "Remove ink and toner cartridges first. Toner is a fine powder: do not spill or inhale it."
+   }
+  ],
+  "ai_hazards": [],
+  "dispose": [
+   "Take the cartridges out first.",
+   "Do not put it in household trash.",
+   "Take it to an e-waste recycler or a retailer take-back program."
+  ],
+  "salvage": [
+   "Cartridges (many makers take them back)",
+   "Motors and gears",
+   "Power supply"
+  ],
+  "ai_salvage": [],
+  "sources": [],
+  "specs": {},
+  "ai_specs": {},
+  "text_lines": [],
+  "label_hint": false,
+  "precious_metals": {},
+  "hazard_hotspots": []
+ }
+}
