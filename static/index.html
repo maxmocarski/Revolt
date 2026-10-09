@@ -2210,6 +2210,19 @@
             }
         });
 
+        //---------------------------------------
+        // Arizona easter eggggg
+        //---------------------------------------
+        let logoClickCount = 0;
+        document.addEventListener('click', e => {
+            if (e.target.closest('#brandBadge, #landingLogo, .brand-badge')) {
+                logoClickCount++;
+                if (logoClickCount === 5) {
+                    window.location.href = '/static/arizona.html';
+                }
+            }
+        });
+
         window.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
