@@ -1236,6 +1236,15 @@
                 </span>
             </label>
         </div>
+        <div class="card modal-section">
+    <div class="settings-row">
+        <div class="settings-row-text">
+            <strong>App Version</strong>
+            <span class="settings-row-desc">Current deployed build</span>
+        </div>
+        <span id="appVersionBadge" style="font-weight: 700; color: var(--accent-green);">v1.2.0</span>
+    </div>
+</div>
         <div class="card modal-section" id="locationsSection">
             <div class="card-title">E-Waste Drop-Off Locations (CT)</div>
             <div class="settings-row-desc">Tap a location to open it in Maps.</div>
@@ -2186,6 +2195,24 @@
             }
             modalReturnFocus = null;
         }
+        async function loadAppVersion() {
+    try {
+        const res = await fetch('/api/version');
+        if (res.ok) {
+            const data = await res.json();
+            const badge = document.getElementById('appVersionBadge');
+            if (badge) badge.textContent = data.version;
+        }
+    } catch (e) {
+        console.error('Failed to load app version', e);
+    }
+}
+
+// Ensure this runs when opening settings
+document.getElementById('settingsBtn')?.addEventListener('click', () => {
+    loadAppVersion();
+    document.getElementById('settingsModal').style.display = 'flex';
+});
 
         document.addEventListener('keydown', e => {
             const modal = visibleModal();
