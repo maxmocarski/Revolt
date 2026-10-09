@@ -1117,7 +1117,6 @@
     <!-- Top bar -->
     <header class="top-bar">
         <button class="brand-badge" onclick="showLanding()" aria-label="ReVolt home"><img src="/static/icon.svg" alt="">Re<span class="accent">Volt</span></button>
-        <img src="/static/zoner.svg" id="zonerImg" alt="Zoner" style="height: 28px; width: 28px; cursor: pointer; margin-left: 8px;">
         
         <div class="mode-switch" role="group" aria-label="Scan mode">
             <button id="modeSingleBtn" class="mode-tab" aria-pressed="true" onclick="setScanMode('single')">Single</button>
@@ -1200,7 +1199,7 @@
         <div id="historyList"></div>
     </div>
 
-    <!-- Settings modal -->
+<!-- Settings modal -->
     <div id="settingsModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
         <div class="modal-header">
             <h2 class="modal-title" id="settingsTitle">Settings</h2>
@@ -1238,16 +1237,8 @@
                     <span class="slider"></span>
                 </span>
             </label>
-        </div>
-        <div class="card modal-section">
-    <div class="settings-row">
-        <div class="settings-row-text">
-            <strong>App Version</strong>
-            <span class="settings-row-desc">Current deployed build</span>
-        </div>
-        <span id="appVersionBadge" style="font-weight: 700; color: var(--accent-green);">v1.2.0</span>
-    </div>
-</div>
+        </div> <!-- ADDED MISSING CLOSING DIV HERE -->
+
         <div class="card modal-section" id="locationsSection">
             <div class="card-title">E-Waste Drop-Off Locations (CT)</div>
             <div class="settings-row-desc">Tap a location to open it in Maps.</div>
@@ -1290,6 +1281,18 @@
             <div class="modal-section" style="margin: var(--space-3) 0 0;">
                 <button class="btn btn-danger" onclick="clearLocalHistory()">Clear History &amp; Stats</button>
                 <div id="clearHistoryHint" class="settings-hint">History and home-screen stats are saved only on this device.</div>
+            </div>
+        </div>
+        <div class="card modal-section">
+            <div class="settings-row">
+                <div class="settings-row-text">
+                    <strong>App Version</strong>
+                    <span class="settings-row-desc">Current deployed build</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <img src="/static/zoner.svg" id="zonerImg" alt="Zoner" style="height: 28px; width: 28px; cursor: pointer;">
+                    <span id="appVersionBadge" style="font-weight: 700; color: var(--accent-green);">v1.2.0</span>
+                </div>
             </div>
         </div>
     </div>
@@ -2250,7 +2253,7 @@ document.getElementById('settingsBtn')?.addEventListener('click', () => {
         
         if (zonerImg) {
             zonerClickCount++;
-            if (zonerClickCount === 5) {
+            if (zonerClickCount === 3) {
                 window.location.href = '/static/arizona.html';
             }
         }
