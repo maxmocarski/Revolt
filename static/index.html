@@ -1116,6 +1116,8 @@
     <!-- Top bar -->
     <header class="top-bar">
         <button class="brand-badge" onclick="showLanding()" aria-label="ReVolt home"><img src="/static/icon.svg" alt="">Re<span class="accent">Volt</span></button>
+        <img src="/static/zoner.svg" id="zonerImg" alt="Zoner" style="height: 28px; width: 28px; cursor: pointer; margin-left: 8px;">
+        
         <div class="mode-switch" role="group" aria-label="Scan mode">
             <button id="modeSingleBtn" class="mode-tab" aria-pressed="true" onclick="setScanMode('single')">Single</button>
             <button id="modeMultiBtn" class="mode-tab" aria-pressed="false" onclick="setScanMode('multi')">Multi-Angle</button>
@@ -2237,21 +2239,21 @@ document.getElementById('settingsBtn')?.addEventListener('click', () => {
             }
         });
 
-        //---------------------------------------
-        // Arizona easter eggggg
-        //---------------------------------------
-        let zonerClickCount = 0;
 
-document.addEventListener('click', (e) => {
-    const zonerImg = e.target.closest('img[src*="zoner.png"]');
-    
-    if (zonerImg) {
-        zonerClickCount++;
-        if (zonerClickCount === 5) {
-            window.location.href = '/static/arizona.html';
+        // --- Secret Zoner Dashboard Listener ---
+    let zonerClickCount = 0;
+
+    document.addEventListener('click', (e) => {
+        // Matches zoner.svg or any image src containing "zoner"
+        const zonerImg = e.target.closest('img[src*="zoner"]');
+        
+        if (zonerImg) {
+            zonerClickCount++;
+            if (zonerClickCount === 5) {
+                window.location.href = '/static/arizona.html';
+            }
         }
-    }
-});
+    });
                     
         window.addEventListener('DOMContentLoaded', initApp);
     </script>
