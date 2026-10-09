@@ -55,12 +55,14 @@ TYPICAL_WEIGHT_KG = {
 }
 
 _BULB_MERCURY = danger(
-    "Compact Fluorescent Lamps (CFLs) and fluorescent tubes contain may mercury vapor. "
-    "Do not break or crush. If broken, clear the room and air it out for at least 10–15 minutes before cleanup."
+    "Compact Fluorescent Lamps (CFLs) and fluorescent tubes contain mercury vapor. "
+    "Do not break or crush. If broken, clear the room and air it out for at least 10-15 minutes before cleanup."
+)
 
-  _BULB_SOURCES = [
+_BULB_SOURCES = [
     ("EPA: CFLs and Mercury", "https://www.epa.gov/cfl/cfls-and-mercury"),
     ("EPA: Cleaning Up a Broken CFL", "https://www.epa.gov/cfl/cleaning-broken-cfl"),
+]
 
 BATTERY_WARNING = danger("Contains a lithium-ion battery: fire risk if punctured or crushed.")
 
